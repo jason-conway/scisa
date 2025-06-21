@@ -1,6 +1,6 @@
 main:
     call  render
-    end
+    halt
 
 render:
     mov   a, 0      ; i = 0
@@ -104,18 +104,13 @@ out4:
     jmp   next_col
 
 next_row:
-    call nl
+    msg   '\n'
     inc   a
     jmp   loop_i
 
 next_col:
     inc   b
     jmp   loop_j
-
-nl:
-    msg '
-'
-    ret
 
 done:
     ret
