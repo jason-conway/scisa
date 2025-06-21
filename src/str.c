@@ -23,10 +23,10 @@ bool str_equal(str_t s1, str_t s2)
 
 uint64_t str_hash(str_t s)
 {
-    uint64_t h = 0x100;
+    uint64_t h = UINT64_C(0xcbf29ce484222325);
     for (ptrdiff_t i = 0; i < s.len; i++) {
         h ^= s.data[i];
-        h *= UINT64_C(1111111111111111111);
+        h *= UINT64_C(0x100000001b3);
     }
     return h ^ h >> 32;
 }
@@ -91,6 +91,11 @@ bool is_letter(uint8_t c)
 bool is_identifier(uint8_t c)
 {
     return c == '_' || is_letter(c) || is_digit(c);
+}
+
+bool is_invalid_identifier(uint8_t c)
+{
+    return !(is_letter(c) || (c == '_'));
 }
 
 str_t str_trim(str_t s)
