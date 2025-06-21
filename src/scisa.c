@@ -134,19 +134,63 @@ typedef enum opcode_t {
     msg,
 #pragma endregion
 
-#define GEN_MNEMONIC_ID(m)  m_##m
-#define GEN_MNEMONIC_STR(m) E(STR(m))
 
+#pragma region REGS
+#define REGISTER_LIST \
+    r0,     \
+    r1,     \
+    r2,     \
+    r3,     \
+    r4,     \
+    r5,     \
+    r6,     \
+    r7,     \
+    r8,     \
+    r9,     \
+    r10,    \
+    r11,    \
+    r12,    \
+    r13,    \
+    r14,    \
+    r15,    \
+    r16,    \
+    r17,    \
+    r18,    \
+    r19,    \
+    r20,    \
+    r21,    \
+    r22,    \
+    r23,    \
+    r24,    \
+    r25,    \
+    r26,    \
+    r27,    \
+    r28,    \
+    r29,    \
+    r30,    \
+    r31
+#pragma endregion
+
+
+#define GEN_MNEMONIC_ID(m)  m_##m
+#define GEN_STR(x)          E(STR(x))
+
+
+typedef enum reg_t {
+    r_null,
+    REGISTER_LIST
+} reg_t;
 
 typedef enum mnemonic_t {
     m_null,
     MAP(GEN_MNEMONIC_ID, MNEMONICS_LIST)
 } mnemonic_t;
 
+
 static mnemonic_t parse_mnemonic(str_t s)
 {
     static const str_t names[] = {
-        MAP(GEN_MNEMONIC_STR, MNEMONICS_LIST)
+        MAP(GEN_STR, MNEMONICS_LIST)
     };
     for (size_t i = 0; i < countof(names); i++) {
         if (str_equal(names[i], s)) {
@@ -155,6 +199,26 @@ static mnemonic_t parse_mnemonic(str_t s)
     }
     return m_null;
 }
+
+static bool str_reg(reg_t *r, str_t s)
+{
+    static const str_t names[] = {
+        MAP(GEN_STR, REGISTER_LIST)
+    };
+    for (size_t i = 0; i < countof(names); i++) {
+        if (str_equal(names[i], s)) {
+            *r = i + 1;
+            return true;
+        }
+    }
+
+    *r = r_null;
+    return false;
+}
+
+
+// opcode   operand1, operand2
+// add   r0, 10 -> reg[0] 
 
 typedef struct insn_t insn_t;
 struct insn_t {
@@ -262,6 +326,24 @@ struct labels_t {
     uintptr_t addr;
 };
 
+static uintptr_t *upsert(labels_t **t, str_t label, arena_t *a)
+{
+    for (uint64_t h = str_hash(label); *t; h = h >> 62 | h << 2) {
+        if (str_equal((*t)->label, label)) {
+            return &(*t)->addr;
+        }
+        // set `t` to next child node
+        t = &(*t)->child[h >> 62];
+    }
+    if (!a) {
+        return NULL;
+    }
+    *t = alloc(a, labels_t, 1);
+    (*t)->label = label;
+    return &(*t)->addr;
+}
+
+
 static token_t lex(str_t s)
 {
     token_t r = { 0 };
@@ -337,19 +419,16 @@ static token_t lex(str_t s)
         return r;
     }
 
-    if (!is_invalid_identifier(*c)) {
+    if (*c == '_' || is_letter(*c)) {
         for (c++; c < end && is_identifier(*c); c++);
         r.data = str_span(c, end);
         r.token = str_span(start, c);
-        bool is_register = r.token.len == 1 && is_lower(*r.token.data);
-        r.type = is_register ? tok_register : tok_identifier;
+        r.type = is_register(r.token) ? tok_register : tok_identifier;
         return r;
     }
 
     return r;
 }
-
-
 
 static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
 {
@@ -360,7 +439,9 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
     token_t t = { 0 };
     t.data = src;
 
-    int32_t ir = 0;
+    int32_t imm = -1;
+    reg_t reg = r_null;
+
     switch (m) {
         case m_null:
             return r;
@@ -386,7 +467,10 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
             t = lex(t.data);
             switch (t.type) {
                 case tok_register:
-                    n->reg[0] = *t.token.data;
+                    if (!str_reg(&reg, t.token)) {
+                        return r;
+                    }
+                    n->reg[0] = reg;
                     break;
                 default:
                     return r;
@@ -403,14 +487,17 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
             t = lex(t.data);
             switch (t.type) {
                 case tok_integer:
-                    if (!str_i32(&ir, t.token)) {
+                    if (!str_i32(&imm, t.token)) {
                         return r;
                     }
-                    n->imm[1] = ir;
+                    n->imm[1] = imm;
                     break;
                 case tok_register:
                     n->op++; // change to reg-reg variant
-                    n->reg[1] = *t.token.data;
+                    if (!str_reg(&reg, t.token)) {
+                        return r;
+                    }
+                    n->reg[1] = reg;
                     break;
                 default:
                     return r;
@@ -422,14 +509,17 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
             switch (t.type) {
                 case tok_integer:
                     n->op = op_cmpii;
-                    if (!str_i32(&ir, t.token)) {
+                    if (!str_i32(&imm, t.token)) {
                         return r;
                     }
-                    n->imm[0] = ir;
+                    n->imm[0] = imm;
                     break;
                 case tok_register:
                     n->op = op_cmpri;
-                    n->reg[0] = *t.token.data;
+                    if (!str_reg(&reg, t.token)) {
+                        return r;
+                    }
+                    n->reg[0] = reg;
                     break;
                 default:
                     return r;
@@ -445,20 +535,23 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
             t = lex(t.data);
             switch (t.type) {
                 case tok_integer:
-                    if (!str_i32(&ir, t.token)) {
+                    if (!str_i32(&imm, t.token)) {
                         return r;
                     }
-                    n->imm[1] = ir;
+                    n->imm[1] = imm;
                     break;
                 case tok_register:
                     n->op++;
-                    n->reg[1] = *t.token.data;
+                    if (!str_reg(&reg, t.token)) {
+                        return r;
+                    }
+                    n->reg[1] = reg;
                     break;
                 default:
                     return r;
             }
             if (n->op == op_cmpii) {
-                return r; // reject "cmp int, int"
+                return r;
             }
             break;
         case m_jmp:
@@ -499,7 +592,10 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
                         break;
                     case tok_register:
                         *tail = alloc(a, msg_t, 1);
-                        (*tail)->reg = *t.token.data;
+                        if (!str_reg(&reg, t.token)) {
+                            return r;
+                        }
+                        (*tail)->reg = reg;
                         tail = &(*tail)->next;
                         break;
                     case tok_comma:
@@ -520,7 +616,10 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
             t = lex(t.data);
             switch (t.type) {
                 case tok_register:
-                    n->reg[0] = *t.token.data;
+                    if (!str_reg(&reg, t.token)) {
+                        return r;
+                    }
+                    n->reg[0] = reg;
                     break;
                 default:
                     return r;
@@ -546,22 +645,7 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
     }
 }
 
-static uintptr_t *upsert(labels_t **t, str_t label, arena_t *a)
-{
-    for (uint64_t h = str_hash(label); *t; h = h >> 62 | h << 2) {
-        if (str_equal((*t)->label, label)) {
-            return &(*t)->addr;
-        }
-        // set `t` to next child node
-        t = &(*t)->child[h >> 62];
-    }
-    if (!a) {
-        return NULL;
-    }
-    *t = alloc(a, labels_t, 1);
-    (*t)->label = label;
-    return &(*t)->addr;
-}
+
 
 // Note: returns pointers into the source buffer.
 static ast_t parse(str_t src, arena_t *perm, arena_t scratch)
@@ -741,56 +825,56 @@ static result_t execute(psw_t *program, arena_t arena)
 #pragma region ABORT
             case op_abort:
                 return r;
-#pragma endregion   
+#pragma endregion
 #pragma region INC/DEC/NEG
             case op_incr:
-                regs[w->reg[0] - 'a'] += (uint32_t)1;
+                regs[w->reg[0]] += (uint32_t)1;
                 break;
             case op_decr:
-                regs[w->reg[0] - 'a'] -= (uint32_t)1;
+                regs[w->reg[0]] -= (uint32_t)1;
                 break;
             case op_negr:
-                regs[w->reg[0] - 'a'] = -regs[w->reg[0] - 'a'];
+                regs[w->reg[0]] = -regs[w->reg[0]];
                 break;
 #pragma endregion
 #pragma region MOV
             case op_movri:
-                regs[w->reg[0] - 'a'] = w->operand.imm;
+                regs[w->reg[0]] = w->operand.imm;
                 break;
             case op_movrr:
-                regs[w->reg[0] - 'a'] = regs[w->reg[1] - 'a'];
+                regs[w->reg[0]] = regs[w->reg[1]];
                 break;
 #pragma endregion
 #pragma region ADD
             case op_addri:
-                regs[w->reg[0] - 'a'] += (uint32_t)w->operand.imm;
+                regs[w->reg[0]] += (uint32_t)w->operand.imm;
                 break;
             case op_addrr:
-                regs[w->reg[0] - 'a'] += (uint32_t)regs[w->reg[1] - 'a'];
+                regs[w->reg[0]] += (uint32_t)regs[w->reg[1]];
                 break;
 #pragma endregion
 #pragma region SADD
             case op_saddri:
-                regs[w->reg[0] - 'a'] += w->operand.imm;
+                regs[w->reg[0]] += w->operand.imm;
                 break;
             case op_saddrr:
-                regs[w->reg[0] - 'a'] += regs[w->reg[1] - 'a'];
+                regs[w->reg[0]] += regs[w->reg[1]];
                 break;
 #pragma endregion
 #pragma region SUB
             case op_subri:
-                regs[w->reg[0] - 'a'] -= (uint32_t)w->operand.imm;
+                regs[w->reg[0]] -= (uint32_t)w->operand.imm;
                 break;
             case op_subrr:
-                regs[w->reg[0] - 'a'] -= (uint32_t)regs[w->reg[1] - 'a'];
+                regs[w->reg[0]] -= (uint32_t)regs[w->reg[1]];
                 break;
 #pragma endregion
 #pragma region MUL
             case op_mulri:
-                regs[w->reg[0] - 'a'] *= (uint32_t)w->operand.imm;
+                regs[w->reg[0]] *= (uint32_t)w->operand.imm;
                 break;
             case op_mulrr:
-                regs[w->reg[0] - 'a'] *= (uint32_t)regs[w->reg[1] - 'a'];
+                regs[w->reg[0]] *= (uint32_t)regs[w->reg[1]];
                 break;
 #pragma endregion
 #pragma region DIV
@@ -799,21 +883,21 @@ static result_t execute(psw_t *program, arena_t arena)
                     case 0:
                         return r;
                     case -1:
-                        regs[w->reg[0] - 'a'] = -(uint32_t)regs[w->reg[0] - 'a'];
+                        regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
                         break;
                     default:
-                        regs[w->reg[0] - 'a'] /= (uint32_t)w->operand.imm;
+                        regs[w->reg[0]] /= (uint32_t)w->operand.imm;
                 }
                 break;
             case op_divrr:
-                switch (regs[w->reg[1] - 'a']) {
+                switch (regs[w->reg[1]]) {
                     case 0:
                         return r;
                     case -1:
-                        regs[w->reg[0] - 'a'] = -(uint32_t)regs[w->reg[0] - 'a'];
+                        regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
                         break;
                     default:
-                        regs[w->reg[0] - 'a'] /= (uint32_t)regs[w->reg[1] - 'a'];
+                        regs[w->reg[0]] /= (uint32_t)regs[w->reg[1]];
                 }
                 break;
 #pragma endregion
@@ -823,21 +907,21 @@ static result_t execute(psw_t *program, arena_t arena)
                     case 0:
                         return r;
                     case -1:
-                        regs[w->reg[0] - 'a'] = -(uint32_t)regs[w->reg[0] - 'a'];
+                        regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
                         break;
                     default:
-                        regs[w->reg[0] - 'a'] /= w->operand.imm;
+                        regs[w->reg[0]] /= w->operand.imm;
                 }
                 break;
             case op_sdivrr:
-                switch (regs[w->reg[1] - 'a']) {
+                switch (regs[w->reg[1]]) {
                     case 0:
                         return r;
                     case -1:
-                        regs[w->reg[0] - 'a'] = -(uint32_t)regs[w->reg[0] - 'a'];
+                        regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
                         break;
                     default:
-                        regs[w->reg[0] - 'a'] /= regs[w->reg[1] - 'a'];
+                        regs[w->reg[0]] /= regs[w->reg[1]];
                 }
                 break;
 #pragma endregion
@@ -847,15 +931,15 @@ static result_t execute(psw_t *program, arena_t arena)
                     case 0:
                         break;
                     default:
-                        regs[w->reg[0] - 'a'] %= (uint32_t)w->operand.imm;
+                        regs[w->reg[0]] %= (uint32_t)w->operand.imm;
                 }
                 break;
             case op_modrr:
-                switch (regs[w->reg[1] - 'a']) {
+                switch (regs[w->reg[1]]) {
                     case 0:
                         break;
                     default:
-                        regs[w->reg[0] - 'a'] %= (uint32_t)regs[w->reg[1] - 'a'];
+                        regs[w->reg[0]] %= (uint32_t)regs[w->reg[1]];
                 }
                 break;
 #pragma endregion
@@ -865,75 +949,75 @@ static result_t execute(psw_t *program, arena_t arena)
                     case 0:
                         break;
                     case -1:
-                        if (regs[w->reg[0] - 'a'] == INT32_MIN) {
-                            regs[w->reg[0] - 'a'] = 0;
+                        if (regs[w->reg[0]] == INT32_MIN) {
+                            regs[w->reg[0]] = 0;
                             break;
                         }
                     default:
-                        regs[w->reg[0] - 'a'] %= w->operand.imm;
+                        regs[w->reg[0]] %= w->operand.imm;
                 }
                 break;
             case op_smodrr:
-                switch (regs[w->reg[1] - 'a']) {
+                switch (regs[w->reg[1]]) {
                     case 0:
                         break;
                     case -1:
-                        if (regs[w->reg[0] - 'a'] == INT32_MIN) {
-                            regs[w->reg[0] - 'a'] = 0;
+                        if (regs[w->reg[0]] == INT32_MIN) {
+                            regs[w->reg[0]] = 0;
                             break;
                         }
                     default:
-                        regs[w->reg[0] - 'a'] %= regs[w->reg[1] - 'a'];
+                        regs[w->reg[0]] %= regs[w->reg[1]];
                 }
                 break;
 #pragma endregion
 #pragma region AND
             case op_andri:
-                regs[w->reg[0] - 'a'] = (uint32_t)regs[w->reg[0] - 'a'] & (uint32_t)w->operand.imm;
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] & (uint32_t)w->operand.imm;
                 break;
             case op_andrr:
-                regs[w->reg[0] - 'a'] = (uint32_t)regs[w->reg[0] - 'a'] & (uint32_t)regs[w->reg[1] - 'a'];
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] & (uint32_t)regs[w->reg[1]];
                 break;
 #pragma endregion
 #pragma region OR
             case op_orri:
-                regs[w->reg[0] - 'a'] = (uint32_t)regs[w->reg[0] - 'a'] | (uint32_t)w->operand.imm;
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] | (uint32_t)w->operand.imm;
                 break;
             case op_orrr:
-                regs[w->reg[0] - 'a'] = (uint32_t)regs[w->reg[0] - 'a'] | (uint32_t)regs[w->reg[1] - 'a'];
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] | (uint32_t)regs[w->reg[1]];
                 break;
 #pragma endregion
 #pragma region XOR
             case op_xorri:
-                regs[w->reg[0] - 'a'] = (uint32_t)regs[w->reg[0] - 'a'] ^ (uint32_t)w->operand.imm;
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] ^ (uint32_t)w->operand.imm;
                 break;
 
             case op_xorrr:
-                regs[w->reg[0] - 'a'] = (uint32_t)regs[w->reg[0] - 'a'] ^ (uint32_t)regs[w->reg[1] - 'a'];
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] ^ (uint32_t)regs[w->reg[1]];
                 break;
 #pragma endregion
 #pragma region LSL
             case op_lslri:
-                regs[w->reg[0] - 'a'] <<= (uint32_t)w->operand.imm;
+                regs[w->reg[0]] <<= (uint32_t)w->operand.imm;
                 break;
             case op_lslrr:
-                regs[w->reg[0] - 'a'] <<= (uint32_t)regs[w->reg[1] - 'a'];
+                regs[w->reg[0]] <<= (uint32_t)regs[w->reg[1]];
                 break;
 #pragma endregion
 #pragma region LSR
             case op_lsrri:
-                regs[w->reg[0] - 'a'] = (uint32_t)regs[w->reg[0] - 'a'] >> (uint32_t)w->operand.imm;
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] >> (uint32_t)w->operand.imm;
                 break;
             case op_lsrrr:
-                regs[w->reg[0] - 'a'] = (uint32_t)regs[w->reg[0] - 'a'] >> (uint32_t)regs[w->reg[1] - 'a'];
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] >> (uint32_t)regs[w->reg[1]];
                 break;
 #pragma endregion
 #pragma region ASR
             case op_asrri:
-                regs[w->reg[0] - 'a'] >>= (uint32_t)w->operand.imm;
+                regs[w->reg[0]] >>= (uint32_t)w->operand.imm;
                 break;
             case op_asrrr:
-                regs[w->reg[0] - 'a'] >>= (uint32_t)regs[w->reg[1] - 'a'];
+                regs[w->reg[0]] >>= (uint32_t)regs[w->reg[1]];
                 break;
 #pragma endregion
 #pragma region CMP
@@ -941,17 +1025,17 @@ static result_t execute(psw_t *program, arena_t arena)
                 return r;
             case op_cmpir:
                 a = w->operand.imm;
-                b = regs[w->reg[1] - 'a'];
+                b = regs[w->reg[1]];
                 cmp = (a > b) - (a < b);
                 break;
             case op_cmpri:
-                a = regs[w->reg[0] - 'a'];
+                a = regs[w->reg[0]];
                 b = w->operand.imm;
                 cmp = (a > b) - (a < b);
                 break;
             case op_cmprr:
-                a = regs[w->reg[0] - 'a'];
-                b = regs[w->reg[1] - 'a'];
+                a = regs[w->reg[0]];
+                b = regs[w->reg[1]];
                 cmp = (a > b) - (a < b);
                 break;
 #pragma endregion
@@ -993,7 +1077,7 @@ static result_t execute(psw_t *program, arena_t arena)
 #pragma region CALL
             case op_call:
                 if (len == cap) {
-                    return r; // stack overflow
+                    return r;
                 }
                 stack[len++] = i;
                 i = w->operand.addr - 1;
@@ -1002,7 +1086,7 @@ static result_t execute(psw_t *program, arena_t arena)
 #pragma region RET
             case op_ret:
                 if (!len) {
-                    return r; // stack empty
+                    return r;
                 }
                 i = stack[--len];
                 break;
@@ -1014,7 +1098,7 @@ static result_t execute(psw_t *program, arena_t arena)
                         print_str(&r.out, m->string);
                     }
                     else {
-                        print_i32(&r.out, regs[m->reg - 'a']);
+                        print_i32(&r.out, regs[m->reg]);
                     }
                 }
                 break;

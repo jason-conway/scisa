@@ -44,10 +44,12 @@ bool is_whitespace(uint8_t c);
 bool is_digit(uint8_t c);
 
 bool is_upper(uint8_t c);
+uint8_t to_upper(uint8_t c);
 
 bool is_lower(uint8_t c);
 
 bool is_letter(uint8_t c);
+bool is_register(str_t s);
 
 bool is_invalid_identifier(uint8_t c);
 

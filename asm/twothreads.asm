@@ -3,87 +3,87 @@ main:
     halt
 
 render:
-    mov   a, 0      ; i = 0
+    mov   r0, 0      ; i = 0
 
 loop_i:
-    cmp   a, 64
+    cmp   r0, 64
     jge   done
 
-    mov   m, a      ; f = ((i - 32) * 752) / 64
-    sub   m, 32
-    mul   m, 752
-    asr   m, 6
-    mov   f, m      ; f = ci
-    mov   b, 0      ; j = 0
+    mov   r12, r0      ; r5 = ((i - 32) * 752) / 64
+    sub   r12, 32
+    mul   r12, 752
+    asr   r12, 6
+    mov   r5, r12      ; r5 = ci
+    mov   r1, 0      ; j = 0
 
 loop_j:
-    cmp   b, 160
+    cmp   r1, 160
     jge   next_row
 
-    mov   m, b      ; g = (((j - 80) * 752) / 160) - 160
-    sub   m, 80
-    mul   m, 752
-    sdiv  m, 160
-    sub   m, 160
-    mov   g, m      ; g = cj
+    mov   r12, r1      ; r6 = (((j - 80) * 752) / 160) - 160
+    sub   r12, 80
+    mul   r12, 752
+    sdiv  r12, 160
+    sub   r12, 160
+    mov   r6, r12      ; r6 = cj
 
-    mov   d, 0      ; x2
-    mov   e, 0      ; y2
-    mov   c, 0      ; k
+    mov   r3, 0      ; x2
+    mov   r4, 0      ; y2
+    mov   r2, 0      ; k
 
 loop_k:
-    cmp   c, 100
+    cmp   r2, 100
     jge   escape
 
-    mov   m, d      ; xx = (x2 * x2) >> 8
-    mul   m, d
-    asr   m, 8
-    mov   h, m
-    mov   m, e      ; yy = (y2 * y2) >> 8
-    mul   m, e
-    asr   m, 8
-    mov   i, m
-    mov   j, h      ; c = xx + yy
-    add   j, i
+    mov   r12, r3      ; xx = (x2 * x2) >> 8
+    mul   r12, r3
+    asr   r12, 8
+    mov   r7, r12
+    mov   r12, r4      ; yy = (y2 * y2) >> 8
+    mul   r12, r4
+    asr   r12, 8
+    mov   r8, r12
+    mov   r9, r7      ; r2 = xx + yy
+    add   r9, r8
 
-    cmp   j, 1024   ; if (c > r)
+    cmp   r9, 1024   ; if (r2 > r)
     jg    escape    ;     break
 
-    mov   k, h      ; z = xx - yy + cj
-    sub   k, i
-    add   k, g
+    mov   r10, r7      ; z = xx - yy + cj
+    sub   r10, r8
+    add   r10, r6
 
-    mov   m, d      ; y2 = 2 * ((x2 * y2) >> 8) + ci
-    mul   m, e
-    asr   m, 8
-    mul   m, 2
-    add   m, f
-    mov   e, m
-    mov   d, k      ; x2 = z
-    inc   c
+    mov   r12, r3      ; y2 = 2 * ((x2 * y2) >> 8) + ci
+    mul   r12, r4
+    asr   r12, 8
+    mul   r12, 2
+    add   r12, r5
+    mov   r4, r12
+    mov   r3, r10      ; x2 = z
+    inc   r2
     jmp   loop_k
 
 escape:
-    mov   l, 0
-    cmp   c, 100
+    mov   r11, 0
+    cmp   r2, 100
     jge   color     ; unbounded case
 
-    mov   m, c      ; val = (k % 4) + 1
-    mod   m, 4
-    inc   m
-    mov   l, m
+    mov   r12, r2      ; val = (k % 4) + 1
+    mod   r12, 4
+    inc   r12
+    mov   r11, r12
 
 color:
-    mov   o, l
-    cmp   o, 0
+    mov   r13, r11
+    cmp   r13, 0
     je    out0
-    cmp   o, 1
+    cmp   r13, 1
     je    out1
-    cmp   o, 2
+    cmp   r13, 2
     je    out2
-    cmp   o, 3
+    cmp   r13, 3
     je    out3
-    cmp   o, 4
+    cmp   r13, 4
     je    out4
     jmp   next_col
 
@@ -105,11 +105,11 @@ out4:
 
 next_row:
     msg   '\n'
-    inc   a
+    inc   r0
     jmp   loop_i
 
 next_col:
-    inc   b
+    inc   r1
     jmp   loop_j
 
 done:

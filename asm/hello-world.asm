@@ -1,9 +1,3 @@
-print:
-    msg 'Hello, World!'
-    call newline
-    end
-
-newline:
-    msg '
-'
-    ret
+main:
+    msg '\e[0;32m➜\e[0m Hello, World!\n'
+    halt

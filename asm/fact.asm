@@ -1,23 +1,18 @@
 main:
-        mov   a, 5
-        mov   b, a
-        mov   c, a
-        call  proc_fact
-        call  print
-        end
+    mov   r0, 12
+    mov   r1, r0
+    mov   r2, r0
+    call  proc_fact
+    call  print
+    halt
 
 proc_fact:
-        dec   b
-        mul   c, b
-        cmp   b, 1
-        jne   proc_fact
-        ret
-print:
-        msg    a, '! = ', c
-        call    newline
-        ret
+    dec   r1
+    mul   r2, r1
+    cmp   r1, 1
+    jne   proc_fact
+    ret
 
-newline:
-        msg '
-'
-        ret
+print:
+    msg    r0, '! = ', r2, '\n'
+    ret
