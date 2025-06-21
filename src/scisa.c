@@ -19,6 +19,7 @@ static void *__alloc(arena_t *a, ptrdiff_t objsize, ptrdiff_t align, ptrdiff_t c
     return r;
 }
 
+#pragma region OPCODES
 typedef enum opcode_t {
     op_abort,
 
@@ -94,8 +95,10 @@ typedef enum opcode_t {
     op_call,
     op_ret,
     op_msg,
-    op_end
+    op_halt
 } opcode_t;
+#pragma endregion
+
 
 #pragma region MNEMONICS
 #define MNEMONICS_LIST \
@@ -103,7 +106,7 @@ typedef enum opcode_t {
     dec,    \
     neg,    \
     ret,    \
-    end,    \
+    halt,   \
     mov,    \
     add,    \
     sadd,   \
@@ -139,71 +142,6 @@ typedef enum mnemonic_t {
     m_null,
     MAP(GEN_MNEMONIC_ID, MNEMONICS_LIST)
 } mnemonic_t;
-
-#if 0
-    m_inc,  // inc R
-    m_dec,  // dec R
-    m_neg,  // neg R
-    m_ret,  // ret
-    m_end,  // end  successful program halt
-    m_mov,  // mov  R, R|I
-    m_add,  // add  R, R|I
-    m_sadd, // sadd R, R|I
-    m_sub,  // sub  R, R|I
-    m_mul,  // mul  R, R|I
-    m_div,  // div  R, R|I
-    m_sdiv, // sdiv R, R|I
-    m_mod,  // mod  R, R|I
-    m_smod, // smod R, R|I
-    m_and,  // and  R, R|I
-    m_or,   // or   R, R|I
-    m_xor,  // xor  R, R|I
-    m_lsl,  // lsl  R, R|I
-    m_lsr,  // lsr  R, R|I
-    m_asr,  // asr  R, R|I
-    m_cmp,  // cmp  [R, I]|[I, R]|[R, R]
-    m_jmp,  // jmp  L
-    m_jne,  // jne  L
-    m_je,   // je   L
-    m_jge,  // jge  L
-    m_jg,   // jg   L
-    m_jle,  // jle  L
-    m_jl,   // jl   L
-    m_call, // call L
-    m_msg,  // msg [string|R, *]   print operands
-#endif
-#if 0
-        E("inc"),
-        E("dec"),
-        E("neg"),
-        E("ret"),
-        E("end"),
-        E("mov"),
-        E("add"),
-        E("sadd"),
-        E("sub"),
-        E("mul"),
-        E("div"),
-        E("sdiv"),
-        E("mod"),
-        E("smod"),
-        E("and"),
-        E("or"),
-        E("xor"),
-        E("lsl"),
-        E("lsr"),
-        E("asr"),
-        E("cmp"),
-        E("jmp"),
-        E("jne"),
-        E("je"),
-        E("jge"),
-        E("jg"),
-        E("jle"),
-        E("jl"),
-        E("call"),
-        E("msg"),
-#endif
 
 static mnemonic_t parse_mnemonic(str_t s)
 {
@@ -241,7 +179,7 @@ typedef struct insnresult_t {
     insn_t *insn;
 } insnresult_t;
 
-
+// program status word
 typedef struct psw_t {
     uint8_t op;
     uint8_t reg[2];
@@ -270,10 +208,30 @@ static void print_str(output_t *o, str_t s)
     ptrdiff_t avail = o->cap - o->len;
     ptrdiff_t count = s.len < avail ? s.len : avail;
     uint8_t *dst = &o->data[o->len];
-    for (ptrdiff_t i = 0; i < count; i++) {
-        dst[i] = s.data[i];
+    ptrdiff_t j = 0;
+    for (ptrdiff_t i = 0; i < s.len && j < count; i++) {
+        uint8_t e = s.data[i];
+        if (e == '\\' && i < count - 1) {
+            switch (s.data[++i]) {
+                case 't':
+                    e = '\t';
+                    break;
+                case 'n':
+                    e = '\n';
+                    break;
+                case '\\':
+                    e = '\\';
+                    break;
+                case 'e':
+                    e = '\e';
+                    break;
+                default:
+                    abort();
+            }
+        }
+        dst[j++] = e;
     }
-    o->len += count;
+    o->len += j;
     o->err |= count != s.len;
 }
 
@@ -326,44 +284,44 @@ static token_t lex(str_t s)
 
     uint8_t *start = s.data;
     uint8_t *end = &s.data[s.len];
-    uint8_t *data = start;
+    uint8_t *c = start;
 
-    if (*data == '\n') {
-        r.data = str_span(++data, end);
-        r.token = str_span(start, data);
+    if (*c == '\n') {
+        r.data = str_span(++c, end);
+        r.token = str_span(start, c);
         r.type = tok_newline;
         return r;
     }
 
-    if (*data == ',') {
-        r.data = str_span(++data, end);
-        r.token = str_span(start, data);
+    if (*c == ',') {
+        r.data = str_span(++c, end);
+        r.token = str_span(start, c);
         r.type = tok_comma;
         return r;
     }
 
-    if (*data == ':') {
-        r.data = str_span(++data, end);
-        r.token = str_span(start, data);
+    if (*c == ':') {
+        r.data = str_span(++c, end);
+        r.token = str_span(start, c);
         r.type = tok_colon;
         return r;
     }
 
-    if (*data == '\'') {
-        for (data++; data < end && *data != '\''; data++);
-        if (data == end) {
+    if (*c == '\'') {
+        for (c++; c < end &&  *c != '\''; c++);
+        if (c == end) {
             return r;
         }
-        r.data = str_span(&data[1], end);
-        r.token = str_span(&start[1], data);
+        r.data = str_span(&c[1], end);
+        r.token = str_span(&start[1], c);
         r.type = tok_string;
         return r;
     }
 
-    if (*data == '-' || *data == '+') {
-        for (data++; data < end && is_digit(*data); data++);
-        r.data = str_span(data, end);
-        r.token = str_span(start, data);
+    if (*c == '-' || *c == '+') {
+        for (c++; c < end && is_digit(*c); c++);
+        r.data = str_span(c, end);
+        r.token = str_span(start, c);
         if (r.token.len < 2) {
             return r;
         }
@@ -371,18 +329,18 @@ static token_t lex(str_t s)
         return r;
     }
 
-    if (is_digit(*data)) {
-        for (data++; data < end && is_digit(*data); data++);
-        r.data = str_span(data, end);
-        r.token = str_span(start, data);
+    if (is_digit(*c)) {
+        for (c++; c < end && is_digit(*c); c++);
+        r.data = str_span(c, end);
+        r.token = str_span(start, c);
         r.type = tok_integer;
         return r;
     }
 
-    if (is_letter(*data) || *data == '_') {
-        for (data++; data < end && is_identifier(*data); data++);
-        r.data = str_span(data, end);
-        r.token = str_span(start, data);
+    if (!is_invalid_identifier(*c)) {
+        for (c++; c < end && is_identifier(*c); c++);
+        r.data = str_span(c, end);
+        r.token = str_span(start, c);
         bool is_register = r.token.len == 1 && is_lower(*r.token.data);
         r.type = is_register ? tok_register : tok_identifier;
         return r;
@@ -571,8 +529,8 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
         case m_ret:
             n->op = op_ret;
             break;
-        case m_end:
-            n->op = op_end;
+        case m_halt:
+            n->op = op_halt;
             break;
     }
 
@@ -628,8 +586,8 @@ static ast_t parse(str_t src, arena_t *perm, arena_t scratch)
             case tok_comma:
             case tok_colon:
             case tok_integer:
-            case tok_string:
             case tok_register:
+            case tok_string:
                 return r;
 
             case tok_newline:
@@ -693,7 +651,7 @@ static psw_t *assemble(insn_t *head, arena_t *perm)
             case op_cmpii:
                 return NULL;
             case op_ret:
-            case op_end:
+            case op_halt:
                 break;
             case op_incr:
             case op_decr:
@@ -761,16 +719,16 @@ static psw_t *assemble(insn_t *head, arena_t *perm)
     return program;
 }
 
-static result_t execute(psw_t *program, arena_t a)
+static result_t execute(psw_t *program, arena_t arena)
 {
     result_t r = { 0 };
 
     r.out.cap = 1 << 16;
-    r.out.data = alloc(&a, uint8_t, r.out.cap);
+    r.out.data = alloc(&arena, uint8_t, r.out.cap);
 
     ptrdiff_t len = 0;
     ptrdiff_t cap = 1 << 10;
-    ptrdiff_t *stack = alloc(&a, uint8_t, cap);
+    ptrdiff_t *stack = alloc(&arena, uint8_t, cap);
 
     int32_t cmp = 0;
     int32_t regs[26] = { 0 };
@@ -780,8 +738,10 @@ static result_t execute(psw_t *program, arena_t a)
         int32_t b = 0;
         psw_t *w = &program[i];
         switch (w->op) {
+#pragma region ABORT
             case op_abort:
                 return r;
+#pragma endregion   
 #pragma region INC/DEC/NEG
             case op_incr:
                 regs[w->reg[0] - 'a'] += (uint32_t)1;
@@ -1059,8 +1019,8 @@ static result_t execute(psw_t *program, arena_t a)
                 }
                 break;
 #pragma endregion
-#pragma region END
-            case op_end:
+#pragma region HALT
+            case op_halt:
                 r.ok = true;
                 return r;
 #pragma endregion
