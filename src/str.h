@@ -49,6 +49,8 @@ bool is_lower(uint8_t c);
 
 bool is_letter(uint8_t c);
 
+bool is_invalid_identifier(uint8_t c);
+
 bool is_identifier(uint8_t c);
 
 str_t str_trim(str_t s);
