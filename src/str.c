@@ -88,6 +88,11 @@ bool is_lower(uint8_t c)
     return c >= 'a' && c <= 'z';
 }
 
+uint8_t to_lower(uint8_t c)
+{
+    return is_lower(c) ? c : (uint8_t)(c + 'a' - 'A');
+}
+
 bool is_letter(uint8_t c)
 {
     return is_upper(c) || is_lower(c);
@@ -98,11 +103,6 @@ bool is_identifier(uint8_t c)
     return c == '_' || is_letter(c) || is_digit(c);
 }
 
-bool is_invalid_identifier(uint8_t c)
-{
-    return !(is_letter(c) || (c == '_'));
-}
-
 bool is_register(str_t s)
 {
     const ptrdiff_t len = s.len;
@@ -111,7 +111,7 @@ bool is_register(str_t s)
     }
 
     uint8_t *c = &s.data[0];
-    if (to_upper(c[0]) != 'R') {
+    if (to_lower(c[0]) != 'r') {
         return false;
     }
     for (ptrdiff_t i = 1; i < s.len; i++) {

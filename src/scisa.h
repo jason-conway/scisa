@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+
 #include "str.h"
 
 #define alignof(x)   _Alignof(x)
@@ -40,4 +42,5 @@ struct msg_t {
     str_t string;
     uint8_t reg;
 };
+
 

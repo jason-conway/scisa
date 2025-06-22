@@ -1,190 +1,158 @@
 #include "scisa.h"
 #include "std.h"
-
-__malloc
-static void *__alloc(arena_t *a, ptrdiff_t objsize, ptrdiff_t align, ptrdiff_t count)
-{
-    ptrdiff_t avail = a->end - a->start;
-    ptrdiff_t padding = -(uintptr_t)a->start & (align - 1);
-    if (count > (avail - padding) / objsize) {
-        abort();
-    }
-    ptrdiff_t total = objsize * count;
-
-    uint8_t *r = &a->start[padding];
-    for (ptrdiff_t i = 0; i < total; i++) {
-        a->start[padding + i] = 0;
-    }
-    a->start += padding + total;
-    return r;
-}
-
-#pragma region OPCODES
-typedef enum opcode_t {
-    op_abort,
-
-    op_incr,
-    op_decr,
-    op_negr,
-
-    // [note] ensure order:
-    // op_XXXri
-    // op_XXXrr
-
-    op_movri,
-    op_movrr,
-
-    op_addri,
-    op_addrr,
-
-    op_saddri,
-    op_saddrr,
-
-    op_subri,
-    op_subrr,
-
-    op_mulri,
-    op_mulrr,
-
-    op_divri,
-    op_divrr,
-
-    op_sdivri,
-    op_sdivrr,
-
-    op_modri,
-    op_modrr,
-
-    op_smodri,
-    op_smodrr,
-
-    op_andri,
-    op_andrr,
-
-    op_orri,
-    op_orrr,
-
-    op_xorri,
-    op_xorrr,
-
-    op_lslri,
-    op_lslrr,
-
-    op_lsrri,
-    op_lsrrr,
-
-    op_asrri,
-    op_asrrr,
-
-
-    op_cmpii,
-    op_cmpir,
-
-    op_cmpri,
-    op_cmprr,
-
-    op_jmp,
-
-    op_jne,
-    op_je,
-    op_jge,
-    op_jg,
-    op_jle,
-    op_jl,
-
-    op_call,
-    op_ret,
-    op_msg,
-    op_halt
-} opcode_t;
-#pragma endregion
-
-
-#pragma region MNEMONICS
-#define MNEMONICS_LIST \
-    inc,    \
-    dec,    \
-    neg,    \
-    ret,    \
-    halt,   \
-    mov,    \
-    add,    \
-    sadd,   \
-    sub,    \
-    mul,    \
-    div,    \
-    sdiv,   \
-    mod,    \
-    smod,   \
-    and,    \
-    or,     \
-    xor,    \
-    lsl,    \
-    lsr,    \
-    asr,    \
-    cmp,    \
-    jmp,    \
-    jne,    \
-    je,     \
-    jge,    \
-    jg,     \
-    jle,    \
-    jl,     \
-    call,   \
-    msg,
-#pragma endregion
-
-
-#pragma region REGS
-#define REGISTER_LIST \
-    r0,     \
-    r1,     \
-    r2,     \
-    r3,     \
-    r4,     \
-    r5,     \
-    r6,     \
-    r7,     \
-    r8,     \
-    r9,     \
-    r10,    \
-    r11,    \
-    r12,    \
-    r13,    \
-    r14,    \
-    r15,    \
-    r16,    \
-    r17,    \
-    r18,    \
-    r19,    \
-    r20,    \
-    r21,    \
-    r22,    \
-    r23,    \
-    r24,    \
-    r25,    \
-    r26,    \
-    r27,    \
-    r28,    \
-    r29,    \
-    r30,    \
-    r31
-#pragma endregion
-
+#include "isa.h"
 
 #define GEN_MNEMONIC_ID(m)  m_##m
+#define GEN_OPCODE_ID(o)    op_##o
 #define GEN_STR(x)          E(STR(x))
 
 
+typedef enum opcode_t {
+    MAP(GEN_OPCODE_ID, OPCODE_LIST)
+} opcode_t;
+
 typedef enum reg_t {
-    r_null,
-    REGISTER_LIST
+    REGISTER_LIST,
+    r_max,
 } reg_t;
 
 typedef enum mnemonic_t {
     m_null,
     MAP(GEN_MNEMONIC_ID, MNEMONICS_LIST)
 } mnemonic_t;
+
+
+typedef struct insn_t insn_t;
+struct insn_t {
+    insn_t *next;
+    msg_t *head;
+    str_t label;
+    uintptr_t addr;
+    ptrdiff_t lineno;
+    opcode_t op;
+    int32_t imm[2];
+    uint8_t reg[2];
+};
+
+typedef struct ast_t {
+    insn_t *head;
+    ptrdiff_t lineno;
+    bool ok;
+} ast_t;
+
+
+typedef struct labels_t labels_t;
+struct labels_t {
+    labels_t *child[4];
+    str_t label;
+    uintptr_t addr;
+};
+
+typedef struct insnresult_t {
+    str_t src;
+    insn_t *insn;
+} insnresult_t;
+
+// program status word
+typedef struct psw_t {
+    uint8_t op;
+    uint8_t reg[2];
+    union operand_t {
+        int32_t imm;
+        ptrdiff_t addr;
+        msg_t *head;
+    } operand;
+} psw_t;
+
+typedef struct output_t {
+    uint8_t *data;
+    ptrdiff_t len;
+    ptrdiff_t cap;
+    int32_t fd;
+    bool err;
+} output_t;
+
+typedef struct result_t {
+    output_t out;
+    bool ok;
+} result_t;
+
+static bool full_write(int32_t fd, uint8_t *s, ptrdiff_t len)
+{
+    for (ptrdiff_t off = 0; off < len;) {
+        ptrdiff_t r = write(fd, &s[off], len - off);
+        if (r < 1) {
+            return false;
+        }
+        off += r;
+    }
+    return true;
+}
+
+static void flush_output(output_t *o)
+{
+    if (!o->err && o->len) {
+        o->err = !full_write(o->fd, o->data, o->len);
+        o->len = 0;
+    }
+}
+
+static void print_str(output_t *o, str_t s)
+{
+    uint8_t *c = &s.data[0];
+    uint8_t *end = &s.data[s.len];
+    while (c < end && !o->err) {
+        ptrdiff_t avail = o->cap - o->len;
+        ptrdiff_t count = avail < end - c ? avail : end - c;
+        uint8_t *dst = &o->data[o->len];
+        ptrdiff_t j = 0;
+        ptrdiff_t i = 0;
+        for (; i < s.len && j < count; i++) {
+            uint8_t e = c[i];
+            if (e == '\\' && i < count - 1) {
+                switch (c[++i]) {
+                    case 't':
+                        e = '\t';
+                        break;
+                    case 'n':
+                        e = '\n';
+                        break;
+                    case '\\':
+                        e = '\\';
+                        break;
+                    case 'e':
+                        e = '\e';
+                        break;
+                    default:
+                        abort();
+                }
+            }
+            dst[j++] = e;
+        }
+        c += i;
+        o->len += j;
+        if (count == s.len) {
+            flush_output(o);
+            continue;
+        }
+        break;
+    }
+}
+
+static void print_i32(output_t *o, int32_t v)
+{
+    uint8_t data[16] = { 0 };
+    uint8_t *end = &data[countof(data)];
+    uint8_t *start = end;
+    int32_t t = v < 0 ? v : -v;
+    do {
+        *--start = '0' - (uint8_t)(t % 10);
+    } while (t /= 10);
+    if (v < 0) {
+        *--start = '-';
+    }
+    print_str(o, str_span(start, end));
+}
 
 
 static mnemonic_t parse_mnemonic(str_t s)
@@ -207,124 +175,29 @@ static bool str_reg(reg_t *r, str_t s)
     };
     for (size_t i = 0; i < countof(names); i++) {
         if (str_equal(names[i], s)) {
-            *r = i + 1;
+            *r = i;
             return true;
         }
     }
-
-    *r = r_null;
     return false;
 }
 
-
-// opcode   operand1, operand2
-// add   r0, 10 -> reg[0] 
-
-typedef struct insn_t insn_t;
-struct insn_t {
-    insn_t *next;
-    msg_t *head;
-    str_t label;
-    ptrdiff_t addr;
-    ptrdiff_t lineno;
-    opcode_t op;
-    int32_t imm[2];
-    uint8_t reg[2];
-};
-
-typedef struct ast_t {
-    insn_t *head;
-    ptrdiff_t lineno;
-    bool ok;
-} ast_t;
-
-typedef struct insnresult_t {
-    str_t src;
-    insn_t *insn;
-} insnresult_t;
-
-// program status word
-typedef struct psw_t {
-    uint8_t op;
-    uint8_t reg[2];
-    union operand_t {
-        int32_t imm;
-        ptrdiff_t addr;
-        msg_t *head;
-    } operand;
-} psw_t;
-
-typedef struct status_t {
-    str_t out;
-    str_t err;
-    int32_t status;
-} status_t;
-
-typedef struct output_t {
-    uint8_t *data;
-    ptrdiff_t len;
-    ptrdiff_t cap;
-    bool err;
-} output_t;
-
-static void print_str(output_t *o, str_t s)
+__malloc static void *__alloc(arena_t *a, ptrdiff_t objsize, ptrdiff_t align, ptrdiff_t count)
 {
-    ptrdiff_t avail = o->cap - o->len;
-    ptrdiff_t count = s.len < avail ? s.len : avail;
-    uint8_t *dst = &o->data[o->len];
-    ptrdiff_t j = 0;
-    for (ptrdiff_t i = 0; i < s.len && j < count; i++) {
-        uint8_t e = s.data[i];
-        if (e == '\\' && i < count - 1) {
-            switch (s.data[++i]) {
-                case 't':
-                    e = '\t';
-                    break;
-                case 'n':
-                    e = '\n';
-                    break;
-                case '\\':
-                    e = '\\';
-                    break;
-                case 'e':
-                    e = '\e';
-                    break;
-                default:
-                    abort();
-            }
-        }
-        dst[j++] = e;
+    ptrdiff_t avail = a->end - a->start;
+    ptrdiff_t padding = -(uintptr_t)a->start & (align - 1);
+    if (count > (avail - padding) / objsize) {
+        abort();
     }
-    o->len += j;
-    o->err |= count != s.len;
-}
+    ptrdiff_t total = objsize * count;
 
-static void print_i32(output_t *o, int32_t v)
-{
-    uint8_t data[16] = { 0 };
-    uint8_t *end = &data[countof(data)];
-    uint8_t *start = end;
-    int32_t t = v < 0 ? v : -v;
-    do {
-        *--start = '0' - (uint8_t)(t % 10);
-    } while (t /= 10);
-    if (v < 0) {
-        *--start = '-';
+    uint8_t *r = &a->start[padding];
+    for (ptrdiff_t i = 0; i < total; i++) {
+        a->start[padding + i] = 0;
     }
-    print_str(o, str_span(start, end));
+    a->start += padding + total;
+    return r;
 }
-
-typedef struct result_t {
-    output_t out;
-    bool ok;
-} result_t;
-
-typedef struct labels_t labels_t;
-struct labels_t {
-    labels_t *child[4];
-    str_t label;
-    uintptr_t addr;
-};
 
 static uintptr_t *upsert(labels_t **t, str_t label, arena_t *a)
 {
@@ -440,11 +313,34 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
     t.data = src;
 
     int32_t imm = -1;
-    reg_t reg = r_null;
+    reg_t reg = r_max;
 
     switch (m) {
         case m_null:
             return r;
+        case m_inc:
+        case m_dec:
+        case m_neg:
+            // One opcode per mnemonic
+            n->op = op_incr + (m - m_inc);
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_register:
+                    if (!str_reg(&reg, t.token)) {
+                        return r;
+                    }
+                    n->reg[0] = reg;
+                    break;
+                default:
+                    return r;
+            }
+            break;
+        case m_ret:
+            n->op = op_ret;
+            break;
+        case m_halt:
+            n->op = op_halt;
+            break;
         case m_mov:
         case m_add:
         case m_sadd:
@@ -608,29 +504,7 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
                 }
                 last = t.type;
             }
-        case m_inc:
-        case m_dec:
-        case m_neg:
-            // One opcode per mnemonic
-            n->op = op_incr + (m - m_inc);
-            t = lex(t.data);
-            switch (t.type) {
-                case tok_register:
-                    if (!str_reg(&reg, t.token)) {
-                        return r;
-                    }
-                    n->reg[0] = reg;
-                    break;
-                default:
-                    return r;
-            }
-            break;
-        case m_ret:
-            n->op = op_ret;
-            break;
-        case m_halt:
-            n->op = op_halt;
-            break;
+        __builtin_trap();
     }
 
     t = lex(t.data);
@@ -648,7 +522,7 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
 
 
 // Note: returns pointers into the source buffer.
-static ast_t parse(str_t src, arena_t *perm, arena_t scratch)
+static ast_t parse(str_t src, arena_t *perm, arena_t a)
 {
     ast_t r = {
         .lineno = 1,
@@ -684,7 +558,7 @@ static ast_t parse(str_t src, arena_t *perm, arena_t scratch)
                         uintptr_t *value = upsert(&table, n->label, NULL);
                         if (!value) {
                             r.lineno = n->lineno;
-                            return r; // label not found
+                            return r;
                         }
                         n->addr = *value;
                     }
@@ -711,7 +585,7 @@ static ast_t parse(str_t src, arena_t *perm, arena_t scratch)
                     if (t.type != tok_colon) {
                         return r;
                     }
-                    *upsert(&table, label, &scratch) = addr;
+                    *upsert(&table, label, &a) = addr;
                 }
                 break;
         }
@@ -806,8 +680,8 @@ static psw_t *assemble(insn_t *head, arena_t *perm)
 static result_t execute(psw_t *program, arena_t arena)
 {
     result_t r = { 0 };
-
-    r.out.cap = 1 << 16;
+    r.out.fd = STDOUT_FILENO;
+    r.out.cap = 1 << 6;
     r.out.data = alloc(&arena, uint8_t, r.out.cap);
 
     ptrdiff_t len = 0;
@@ -815,7 +689,7 @@ static result_t execute(psw_t *program, arena_t arena)
     ptrdiff_t *stack = alloc(&arena, uint8_t, cap);
 
     int32_t cmp = 0;
-    int32_t regs[26] = { 0 };
+    int32_t regs[r_max] = { 0 };
 
     for (ptrdiff_t i = 0;; i++) {
         int32_t a = 0;
@@ -1112,6 +986,7 @@ static result_t execute(psw_t *program, arena_t arena)
     }
 }
 
+
 static str_t os_loadstdin(arena_t *a)
 {
     str_t s = { 0 };
@@ -1130,47 +1005,39 @@ static str_t os_loadstdin(arena_t *a)
     return s;
 }
 
-static status_t run(arena_t heap)
+static bool run(arena_t heap)
 {
-    status_t r = { 0 };
-
     arena_t a = { 0 };
     ptrdiff_t cap = (heap.end - heap.start) / 2;
 
     a.start = alloc(&heap, uint8_t, cap);
     a.end = &a.start[cap];
 
-    output_t std_err = { 0 };
-    std_err.cap = 1 << 8;
-    std_err.data = alloc(&heap, uint8_t, std_err.cap);
+    output_t err = { 0 };
+    err.fd = STDERR_FILENO;
+    err.cap = 1 << 8;
+    err.data = alloc(&heap, uint8_t, err.cap);
 
     str_t src = os_loadstdin(&heap);
 
     ast_t ast = parse(src, &heap, a);
     if (!ast.ok) {
-        print_str(&std_err, S("[error] invalid line:"));
-        print_i32(&std_err, (int32_t)ast.lineno);
-        print_str(&std_err, S("\n"));
-        r.err = (str_t) {
-            .data = std_err.data,
-            .len = std_err.len,
-        };
-        r.status = 2;
-        return r;
+        print_str(&err, S("[error] invalid line:"));
+        print_i32(&err, (int32_t)ast.lineno);
+        print_str(&err, S("\n"));
+        flush_output(&err);
+        return false;
     }
 
     psw_t *program = assemble(ast.head, &heap);
-    result_t er = execute(program, a);
-    if (!er.ok) {
-        r.err = S("[error] execution aborted\n");
-        r.status = 1;
-        return r;
+    result_t result = execute(program, a);
+    if (!result.ok) {
+        print_str(&err, S("[error] execution aborted\n"));
+        flush_output(&err);
+        return false;
     }
-    r.out = (str_t) {
-        .data = er.out.data,
-        .len = er.out.len,
-    };
-    return r;
+    flush_output(&result.out);
+    return true;
 }
 
 static arena_t bss_arena(void)
@@ -1186,13 +1053,5 @@ static arena_t bss_arena(void)
 int main(void)
 {
     arena_t heap = bss_arena();
-    status_t r = run(heap);
-    if (r.err.len) {
-        fwrite(r.err.data, 1, r.err.len, stderr);
-    }
-    if (r.out.len) {
-        fwrite(r.out.data, 1, r.out.len, stdout);
-    }
-    fflush(stdout);
-    return ferror(stdout) ? 100 : 0;
+    return !run(heap);
 }
