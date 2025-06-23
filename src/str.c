@@ -13,7 +13,7 @@ bool str_equal(str_t s1, str_t s2)
     if (s1.len != s2.len) {
         return false;
     }
-    for (ptrdiff_t i = 0; i < s1.len; i++) {
+    for (int64_t i = 0; i < s1.len; i++) {
         if (s1.data[i] != s2.data[i]) {
             return false;
         }
@@ -24,7 +24,7 @@ bool str_equal(str_t s1, str_t s2)
 uint64_t str_hash(str_t s)
 {
     uint64_t h = UINT64_C(0xcbf29ce484222325);
-    for (ptrdiff_t i = 0; i < s.len; i++) {
+    for (int64_t i = 0; i < s.len; i++) {
         h ^= s.data[i];
         h *= UINT64_C(0x100000001b3);
     }
@@ -61,6 +61,21 @@ bool str_i32(int32_t *d, str_t s)
 
     *d = neg ? -value : value;
     return true;
+}
+
+str_t i32_str(int32_t v)
+{
+    static uint8_t data[16] = { 0 };
+    uint8_t *end = &data[countof(data)];
+    uint8_t *start = end;
+    int32_t i = v < 0 ? v : -v;
+    do {
+        *--start = '0' - (uint8_t)(i % 10);
+    } while (i /= 10);
+    if (v < 0) {
+        *--start = '-';
+    }
+    return str_span(start, end);
 }
 
 bool is_whitespace(uint8_t c)
@@ -105,7 +120,7 @@ bool is_identifier(uint8_t c)
 
 bool is_register(str_t s)
 {
-    const ptrdiff_t len = s.len;
+    const int64_t len = s.len;
     if (!len || len > 3) {
         return false;
     }
@@ -114,7 +129,7 @@ bool is_register(str_t s)
     if (to_lower(c[0]) != 'r') {
         return false;
     }
-    for (ptrdiff_t i = 1; i < s.len; i++) {
+    for (int64_t i = 1; i < s.len; i++) {
         if (!is_digit(c[i])) {
             return false;
         }

@@ -1,8 +1,8 @@
 #include "scisa.h"
 
-static bool full_write(int32_t fd, uint8_t *s, ptrdiff_t len)
+static bool full_write(int32_t fd, uint8_t *s, size_t len)
 {
-    for (ptrdiff_t off = 0; off < len;) {
+    for (size_t off = 0; off < len;) {
         ptrdiff_t r = write(fd, &s[off], len - off);
         if (r < 1) {
             return false;
@@ -28,9 +28,11 @@ static void print_str(output_t *o, str_t s)
         ptrdiff_t avail = o->cap - o->len;
         ptrdiff_t count = avail < end - c ? avail : end - c;
         uint8_t *dst = &o->data[o->len];
-        ptrdiff_t j = 0;
+
         ptrdiff_t i = 0;
-        for (; i < s.len && j < count; i++) {
+        ptrdiff_t j = 0;
+
+        while (i < s.len && j < count) {
             uint8_t e = c[i];
             if (e == '\\' && i < count - 1) {
                 switch (c[++i]) {
@@ -51,9 +53,11 @@ static void print_str(output_t *o, str_t s)
                 }
             }
             dst[j++] = e;
+            i++;
         }
         c += i;
         o->len += j;
+
         if (count == s.len) {
             flush_output(o);
             continue;
@@ -62,20 +66,6 @@ static void print_str(output_t *o, str_t s)
     }
 }
 
-static void print_i32(output_t *o, int32_t v)
-{
-    uint8_t data[16] = { 0 };
-    uint8_t *end = &data[countof(data)];
-    uint8_t *start = end;
-    int32_t i = v < 0 ? v : -v;
-    do {
-        *--start = '0' - (uint8_t)(i % 10);
-    } while (i /= 10);
-    if (v < 0) {
-        *--start = '-';
-    }
-    print_str(o, str_span(start, end));
-}
 
 static bool is_mnemonic(str_t s, mnemonic_t *m)
 {
@@ -884,12 +874,7 @@ static result_t execute(psw_t *program, arena_t arena)
 #pragma region MSG
             case op_msg:
                 for (msg_t *m = w->operand.head; m; m = m->next) {
-                    if (m->string.data) {
-                        print_str(&r.out, m->string);
-                    }
-                    else {
-                        print_i32(&r.out, regs[m->reg]);
-                    }
+                    print_str(&r.out, m->string.data ? m->string : i32_str(regs[m->reg]));
                 }
                 break;
 #pragma endregion
