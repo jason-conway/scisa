@@ -51,9 +51,7 @@
     ret, \
     msg, \
     halt
-
 #pragma endregion
-
 
 #pragma region MNEMONICS
 #define MNEMONICS_LIST \

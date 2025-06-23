@@ -1,81 +1,4 @@
 #include "scisa.h"
-#include "std.h"
-#include "isa.h"
-
-#define GEN_MNEMONIC_ID(m)  m_##m
-#define GEN_OPCODE_ID(o)    op_##o
-#define GEN_STR(x)          E(STR(x))
-
-
-typedef enum opcode_t {
-    MAP(GEN_OPCODE_ID, OPCODE_LIST)
-} opcode_t;
-
-typedef enum reg_t {
-    REGISTER_LIST,
-    r_max,
-} reg_t;
-
-typedef enum mnemonic_t {
-    m_null,
-    MAP(GEN_MNEMONIC_ID, MNEMONICS_LIST)
-} mnemonic_t;
-
-
-typedef struct insn_t insn_t;
-struct insn_t {
-    insn_t *next;
-    msg_t *head;
-    str_t label;
-    uintptr_t addr;
-    ptrdiff_t lineno;
-    opcode_t op;
-    int32_t imm[2];
-    uint8_t reg[2];
-};
-
-typedef struct ast_t {
-    insn_t *head;
-    ptrdiff_t lineno;
-    bool ok;
-} ast_t;
-
-
-typedef struct labels_t labels_t;
-struct labels_t {
-    labels_t *child[4];
-    str_t label;
-    uintptr_t addr;
-};
-
-typedef struct insnresult_t {
-    str_t src;
-    insn_t *insn;
-} insnresult_t;
-
-// program status word
-typedef struct psw_t {
-    uint8_t op;
-    uint8_t reg[2];
-    union operand_t {
-        int32_t imm;
-        ptrdiff_t addr;
-        msg_t *head;
-    } operand;
-} psw_t;
-
-typedef struct output_t {
-    uint8_t *data;
-    ptrdiff_t len;
-    ptrdiff_t cap;
-    int32_t fd;
-    bool err;
-} output_t;
-
-typedef struct result_t {
-    output_t out;
-    bool ok;
-} result_t;
 
 static bool full_write(int32_t fd, uint8_t *s, ptrdiff_t len)
 {
@@ -144,28 +67,28 @@ static void print_i32(output_t *o, int32_t v)
     uint8_t data[16] = { 0 };
     uint8_t *end = &data[countof(data)];
     uint8_t *start = end;
-    int32_t t = v < 0 ? v : -v;
+    int32_t i = v < 0 ? v : -v;
     do {
-        *--start = '0' - (uint8_t)(t % 10);
-    } while (t /= 10);
+        *--start = '0' - (uint8_t)(i % 10);
+    } while (i /= 10);
     if (v < 0) {
         *--start = '-';
     }
     print_str(o, str_span(start, end));
 }
 
-
-static mnemonic_t parse_mnemonic(str_t s)
+static bool is_mnemonic(str_t s, mnemonic_t *m)
 {
     static const str_t names[] = {
         MAP(GEN_STR, MNEMONICS_LIST)
     };
     for (size_t i = 0; i < countof(names); i++) {
         if (str_equal(names[i], s)) {
-            return i + 1;
+            *m = i + 1;
+            return true;
         }
     }
-    return m_null;
+    return false;
 }
 
 static bool str_reg(reg_t *r, str_t s)
@@ -182,24 +105,24 @@ static bool str_reg(reg_t *r, str_t s)
     return false;
 }
 
-__malloc static void *__alloc(arena_t *a, ptrdiff_t objsize, ptrdiff_t align, ptrdiff_t count)
+static void *__alloc(arena_t *a, size_t objsize, size_t align, size_t count)
 {
     ptrdiff_t avail = a->end - a->start;
     ptrdiff_t padding = -(uintptr_t)a->start & (align - 1);
     if (count > (avail - padding) / objsize) {
         abort();
     }
-    ptrdiff_t total = objsize * count;
+    size_t total = objsize * count;
 
     uint8_t *r = &a->start[padding];
-    for (ptrdiff_t i = 0; i < total; i++) {
+    for (size_t i = 0; i < total; i++) {
         a->start[padding + i] = 0;
     }
     a->start += padding + total;
     return r;
 }
 
-static uintptr_t *upsert(labels_t **t, str_t label, arena_t *a)
+static vaddr *upsert(labels_t **t, str_t label, arena_t *a)
 {
     for (uint64_t h = str_hash(label); *t; h = h >> 62 | h << 2) {
         if (str_equal((*t)->label, label)) {
@@ -303,21 +226,19 @@ static token_t lex(str_t s)
     return r;
 }
 
-static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
+static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
 {
-    insnresult_t r = { 0 };
     insn_t *n = alloc(a, insn_t, 1);
     msg_t **tail = &n->head;
 
-    token_t t = { 0 };
-    t.data = src;
+    token_t t = { .data = *src };
 
     int32_t imm = -1;
     reg_t reg = r_max;
 
     switch (m) {
         case m_null:
-            return r;
+            return NULL;
         case m_inc:
         case m_dec:
         case m_neg:
@@ -327,12 +248,12 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
             switch (t.type) {
                 case tok_register:
                     if (!str_reg(&reg, t.token)) {
-                        return r;
+                        return NULL;
                     }
                     n->reg[0] = reg;
                     break;
                 default:
-                    return r;
+                    return NULL;
             }
             break;
         case m_ret:
@@ -364,12 +285,12 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
             switch (t.type) {
                 case tok_register:
                     if (!str_reg(&reg, t.token)) {
-                        return r;
+                        return NULL;
                     }
                     n->reg[0] = reg;
                     break;
                 default:
-                    return r;
+                    return NULL;
             }
             // Eat comma
             t = lex(t.data);
@@ -377,26 +298,26 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
                 case tok_comma:
                     break;
                 default:
-                    return r;
+                    return NULL;
             }
             // Second operand can be immediate or from reg
             t = lex(t.data);
             switch (t.type) {
                 case tok_integer:
                     if (!str_i32(&imm, t.token)) {
-                        return r;
+                        return NULL;
                     }
                     n->imm[1] = imm;
                     break;
                 case tok_register:
                     n->op++; // change to reg-reg variant
                     if (!str_reg(&reg, t.token)) {
-                        return r;
+                        return NULL;
                     }
                     n->reg[1] = reg;
                     break;
                 default:
-                    return r;
+                    return NULL;
             }
             break;
         case m_cmp:
@@ -406,48 +327,48 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
                 case tok_integer:
                     n->op = op_cmpii;
                     if (!str_i32(&imm, t.token)) {
-                        return r;
+                        return NULL;
                     }
                     n->imm[0] = imm;
                     break;
                 case tok_register:
                     n->op = op_cmpri;
                     if (!str_reg(&reg, t.token)) {
-                        return r;
+                        return NULL;
                     }
                     n->reg[0] = reg;
                     break;
                 default:
-                    return r;
+                    return NULL;
             }
             t = lex(t.data);
             switch (t.type) {
                 case tok_comma:
                     break;
                 default:
-                    return r;
+                    return NULL;
             }
             // Second operand can be imm or reg
             t = lex(t.data);
             switch (t.type) {
                 case tok_integer:
                     if (!str_i32(&imm, t.token)) {
-                        return r;
+                        return NULL;
                     }
                     n->imm[1] = imm;
                     break;
                 case tok_register:
                     n->op++;
                     if (!str_reg(&reg, t.token)) {
-                        return r;
+                        return NULL;
                     }
                     n->reg[1] = reg;
                     break;
                 default:
-                    return r;
+                    return NULL;
             }
             if (n->op == op_cmpii) {
-                return r;
+                return NULL;
             }
             break;
         case m_jmp:
@@ -461,26 +382,26 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
             // Single label operand
             t = lex(t.data);
             if (t.type != tok_identifier) {
-                return r;
+                return NULL;
             }
             n->label = t.token;
             n->op = op_jne + (m - m_jne);
             break;
         case m_msg:
             n->op = op_msg;
-            for (token_type_t last = tok_error;;) {
+            for (tok_t last = tok_error;;) {
                 t = lex(t.data);
                 switch (t.type) {
                     case tok_newline:
                     case tok_eof:
                         if (last != tok_comma) {
-                            r.insn = n;
-                            r.src = t.data;
+                            *src = t.data;
+                            return n;
                         }
-                        return r;
+                        return NULL;
                     case tok_string:
                         if (last && last != tok_comma) {
-                            return r;
+                            return NULL;
                         }
                         *tail = alloc(a, msg_t, 1);
                         (*tail)->string = t.token;
@@ -489,18 +410,18 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
                     case tok_register:
                         *tail = alloc(a, msg_t, 1);
                         if (!str_reg(&reg, t.token)) {
-                            return r;
+                            return NULL;
                         }
                         (*tail)->reg = reg;
                         tail = &(*tail)->next;
                         break;
                     case tok_comma:
                         if (!last || last == tok_comma) {
-                            return r;
+                            return NULL;
                         }
                         break;
                     default:
-                        return r;
+                        return NULL;
                 }
                 last = t.type;
             }
@@ -511,28 +432,25 @@ static insnresult_t parse_instruction(arena_t *a, mnemonic_t m, str_t src)
     switch (t.type) {
         case tok_eof:
         case tok_newline:
-            r.insn = n;
-            r.src = t.data;
-            return r;
+            *src = t.data;
+            return n;
         default:
-            return r;
+            return NULL;
     }
 }
 
-
-
 // Note: returns pointers into the source buffer.
-static ast_t parse(str_t src, arena_t *perm, arena_t a)
+static ast_t parse(str_t src, arena_t *heap, arena_t stack)
 {
-    ast_t r = {
-        .lineno = 1,
+    ast_t r = { 0
+        // .lineno = 1,
     };
 
     token_t t = {
         .data = src
     };
 
-    ptrdiff_t addr = 0;
+    vaddr addr = 0;
     labels_t *table = NULL;
     insn_t **tail = &r.head;
 
@@ -547,45 +465,41 @@ static ast_t parse(str_t src, arena_t *perm, arena_t a)
             case tok_register:
             case tok_string:
                 return r;
-
             case tok_newline:
-                r.lineno++;
+                // r.lineno++;
                 break;
-
             case tok_eof:
                 for (insn_t *n = r.head; n; n = n->next) {
                     if (n->label.data) {
-                        uintptr_t *value = upsert(&table, n->label, NULL);
-                        if (!value) {
-                            r.lineno = n->lineno;
+                        vaddr *addr = upsert(&table, n->label, NULL);
+                        if (!addr) {
+                            // r.lineno = n->lineno;
                             return r;
                         }
-                        n->addr = *value;
+                        n->addr = *addr;
                     }
                 }
                 r.ok = true;
                 return r;
 
             case tok_identifier:
-                m = parse_mnemonic(t.token);
-                if (m != m_null) {
-                    insnresult_t ir = parse_instruction(perm, m, t.data);
-                    if (!ir.insn) {
+                if (is_mnemonic(t.token, &m)) {
+                    insn_t *insn = parse_instruction(heap, m, &t.data);
+                    if (!insn) {
                         return r;
                     }
-                    t.data = ir.src;
-                    ir.insn->lineno = r.lineno++;
-                    *tail = ir.insn;
+                    // insn->lineno = r.lineno++;
+                    *tail = insn;
                     tail = &(*tail)->next;
                     addr++;
                 }
-                else {
+                else { // is label
                     str_t label = t.token;
                     t = lex(t.data);
                     if (t.type != tok_colon) {
                         return r;
                     }
-                    *upsert(&table, label, &a) = addr;
+                    *upsert(&table, label, &stack) = addr;
                 }
                 break;
         }
@@ -593,16 +507,17 @@ static ast_t parse(str_t src, arena_t *perm, arena_t a)
 }
 
 // Note: retains references to the AST.
-static psw_t *assemble(insn_t *head, arena_t *perm)
+static psw_t *assemble(insn_t *head, arena_t *arena)
 {
     ptrdiff_t len = 0;
     for (insn_t *n = head; n; n = n->next) {
         len++;
     }
 
-    ptrdiff_t i = 0;
-    psw_t *program = alloc(perm, psw_t, len + 1);
-    for (insn_t *n = head; n; n = n->next, i++) {
+    psw_t *program = alloc(arena, psw_t, len + 1);
+
+    size_t i = 0;
+    for (insn_t *n = head; n; n = n->next) {
         program[i].op = (uint8_t)n->op;
         switch (n->op) {
             case op_abort:
@@ -672,6 +587,7 @@ static psw_t *assemble(insn_t *head, arena_t *perm)
                 program[i].operand.head = n->head;
                 break;
         }
+        i++;
     }
 
     return program;
@@ -1023,7 +939,7 @@ static bool run(arena_t heap)
     ast_t ast = parse(src, &heap, a);
     if (!ast.ok) {
         print_str(&err, S("[error] invalid line:"));
-        print_i32(&err, (int32_t)ast.lineno);
+        // print_i32(&err, (int32_t)ast.lineno);
         print_str(&err, S("\n"));
         flush_output(&err);
         return false;

@@ -13,10 +13,6 @@
 #define lengthof(s)  (countof(s) - 1)
 #endif
 
-#if __GNUC__
-#define __malloc __attribute__((malloc, alloc_size(2, 4)))
-#endif
-
 typedef struct str_t {
     uint8_t *data;
     ptrdiff_t len;
@@ -25,11 +21,6 @@ typedef struct str_t {
 #define S(s) (str_t) { (uint8_t *)s, lengthof(s) }
 
 #define E(s) { (uint8_t *)s, lengthof(s) }
-
-typedef struct arena_t {
-    uint8_t *start;
-    uint8_t *end;
-} arena_t;
 
 str_t str_span(uint8_t *head, uint8_t *tail);
 
