@@ -7,15 +7,15 @@
 #include <stdlib.h>
 
 #ifndef countof
-#define countof(a)   (sizeof(a) / sizeof(*(a)))
+    #define countof(a)   (sizeof(a) / sizeof(*(a)))
 #endif
 #ifndef lengthof
-#define lengthof(s)  (countof(s) - 1)
+    #define lengthof(s)  (countof(s) - 1)
 #endif
 
 typedef struct str_t {
     uint8_t *data;
-    ptrdiff_t len;
+    int64_t len;
 } str_t;
 
 #define S(s) (str_t) { (uint8_t *)s, lengthof(s) }
@@ -29,6 +29,8 @@ bool str_equal(str_t s1, str_t s2);
 uint64_t str_hash(str_t s);
 
 bool str_i32(int32_t *d, str_t s);
+
+str_t i32_str(int32_t v);
 
 bool is_whitespace(uint8_t c);
 
