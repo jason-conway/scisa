@@ -1,17 +1,21 @@
 main:
-    msg 'primes:\n'
-
+    msg 'no.\tprime\n'
+    mov r7, 1
     mov r1, 0
 iter:
     cmp r1, 1000000
     jl cont
+    msg '\n'
     halt
 cont:
     mov r3, r1
     call is_prime
     cmp r0, 0
     je skip
-    msg r1, '\n'
+    msg '\r'
+    msg r7, '\t', r1
+    msg '\0'
+    inc r7
 skip:
     inc r1
     jmp iter
