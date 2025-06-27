@@ -785,26 +785,26 @@ static result_t execute(psw_t *program, arena_t arena)
 #pragma endregion
 #pragma region LSL
             case op_lslri:
-                regs[w->reg[0]] <<= (uint32_t)w->operand.imm;
+                regs[w->reg[0]] <<= ((uint32_t)w->operand.imm & 0x1f);
                 break;
             case op_lslrr:
-                regs[w->reg[0]] <<= (uint32_t)regs[w->reg[1]];
+                regs[w->reg[0]] <<= ((uint32_t)regs[w->reg[1]] & 0x1f);
                 break;
 #pragma endregion
 #pragma region LSR
             case op_lsrri:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] >> (uint32_t)w->operand.imm;
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] >> ((uint32_t)w->operand.imm & 0x1f);
                 break;
             case op_lsrrr:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] >> (uint32_t)regs[w->reg[1]];
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] >> ((uint32_t)regs[w->reg[1]] & 0x1f);
                 break;
 #pragma endregion
 #pragma region ASR
             case op_asrri:
-                regs[w->reg[0]] >>= (uint32_t)w->operand.imm;
+                regs[w->reg[0]] >>= ((uint32_t)w->operand.imm & 0x1f);
                 break;
             case op_asrrr:
-                regs[w->reg[0]] >>= (uint32_t)regs[w->reg[1]];
+                regs[w->reg[0]] >>= ((uint32_t)regs[w->reg[1]] & 0x1f);
                 break;
 #pragma endregion
 #pragma region CMP
