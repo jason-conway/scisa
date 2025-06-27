@@ -31,6 +31,29 @@ uint64_t str_hash(str_t s)
     return h ^ h >> 32;
 }
 
+int32_t from_hex(uint8_t c)
+{
+    static uint8_t vals[256] = {
+        ['0'] = 0x01, ['1'] = 0x02,
+        ['2'] = 0x03, ['3'] = 0x04,
+        ['4'] = 0x05, ['5'] = 0x06,
+        ['6'] = 0x07, ['7'] = 0x08,
+        ['8'] = 0x09, ['9'] = 0x0a,
+        ['A'] = 0x0b, ['B'] = 0x0c,
+        ['C'] = 0x0d, ['D'] = 0x0e,
+        ['E'] = 0x0f, ['F'] = 0x10,
+        ['a'] = 0x0b, ['b'] = 0x0c,
+        ['c'] = 0x0d, ['d'] = 0x0e,
+        ['e'] = 0x0f, ['f'] = 0x10,
+    };
+    return vals[c] - 1;
+}
+
+bool is_hex(uint8_t c)
+{
+    return !(from_hex(c) < 0);
+}
+
 // Convert s8 ascii string to int32_t
 // Return false on failure
 bool str_i32(int32_t *d, str_t s)
@@ -51,12 +74,28 @@ bool str_i32(int32_t *d, str_t s)
             break;
     }
 
-    for (; i < (size_t)s.len; i++) {
-        int32_t d = s.data[i] - '0';
-        if (value > (limit - d) / 10) {
-            return false;
+    if (str_has_prefix(str_slice(s, i, s.len), S("0x"))) {
+        for (i += 2; i < (size_t)s.len; i++) {
+            int32_t v = from_hex(s.data[i]);
+            if (v < 0) {
+                return false;
+            }
+            if (value > (limit - v) / 16) {
+                return false;
+            }
+            value *= 16;
+            value += v;
         }
-        value = value * 10 + d;
+    }
+    else {
+        for (; i < (size_t)s.len; i++) {
+            int32_t v = s.data[i] - '0';
+            if (value > (limit - v) / 10) {
+                return false;
+            }
+            value *= 10;
+            value += v;
+        }
     }
 
     *d = neg ? -value : value;
@@ -148,4 +187,60 @@ str_t str_trim(str_t s)
     s.data = data;
     s.len = end - data;
     return s;
+}
+
+str_t str_slice(str_t s, ptrdiff_t start, ptrdiff_t end)
+{
+    s.data = &s.data[start];
+    s.len = end - start;
+    return s;
+}
+
+bool str_has_prefix(str_t s, str_t prefix)
+{
+    if (s.len < prefix.len) {
+        return false;
+    }
+    return str_equal(str_slice(s, 0, prefix.len), prefix);
+}
+
+bool str_has_suffix(str_t s, str_t suffix)
+{
+    if (s.len < suffix.len) {
+        return false;
+    }
+    return str_equal(str_slice(s, s.len - suffix.len, s.len), suffix);
+}
+
+splitstr_t str_cut(str_t s, uint8_t c)
+{
+    uint8_t *start = &s.data[0];
+    uint8_t *end = &s.data[s.len];
+    uint8_t *cut = start;
+
+    for (; cut < end && *cut != c; cut++);
+
+    splitstr_t r = {};
+    r.ok = cut < end;
+    r.head = str_span(start, cut);
+    r.tail = str_span(cut + r.ok, end);
+    return r;
+}
+
+splitstr_t str_chop(str_t s)
+{
+    splitstr_t r = { 0 };
+    if (str_has_suffix(s, S("\r\n"))) {
+        r.ok = true;
+        r.head = str_slice(s, 0, s.len - 2);
+        r.tail = str_slice(s, s.len - 2, s.len);
+        return r;
+    } else if (str_has_suffix(s, S("\n"))) {
+        r.ok = true;
+        r.head = str_slice(s, 0, s.len - 1);
+        r.tail = str_slice(s, s.len - 1, s.len);
+        return r;
+    }
+    r.head = s;
+    return r;
 }
