@@ -26,21 +26,23 @@ static void print_str(output_t *o, str_t s)
     uint8_t *end = &s.data[s.len];
     while (c < end && !o->err) {
         ptrdiff_t avail = o->cap - o->len;
-        ptrdiff_t count = avail < end - c ? avail : end - c;
         uint8_t *dst = &o->data[o->len];
 
         ptrdiff_t i = 0;
         ptrdiff_t j = 0;
 
-        while (i < s.len && j < count) {
+        while (i < end - c && j < avail) {
             uint8_t e = c[i];
-            if (e == '\\' && i < count - 1) {
-                switch (c[++i]) {
+            if (e == '\\' && i + 1 < end - c) {
+                switch (c[i + 1]) {
                     case 't':
                         e = '\t';
                         break;
                     case 'n':
                         e = '\n';
+                        break;
+                    case 'r':
+                        e = '\r';
                         break;
                     case '\\':
                         e = '\\';
@@ -48,21 +50,26 @@ static void print_str(output_t *o, str_t s)
                     case 'e':
                         e = '\e';
                         break;
+                    case '0':
+                        flush_output(o);
+                        i += 2;
+                        c += i;
+                        goto next;
                     default:
                         abort();
                 }
+                i++;
             }
             dst[j++] = e;
             i++;
         }
+
         c += i;
         o->len += j;
-
-        if (count == s.len) {
+        if (o->len == o->cap) {
             flush_output(o);
-            continue;
         }
-        break;
+    next:;
     }
 }
 
@@ -229,6 +236,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
     switch (m) {
         case m_null:
             return NULL;
+#pragma region One operand
         case m_inc:
         case m_dec:
         case m_neg:
@@ -246,12 +254,15 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     return NULL;
             }
             break;
+#pragma endregion
+#pragma region Zero operands
         case m_ret:
             n->op = op_ret;
             break;
         case m_halt:
             n->op = op_halt;
             break;
+#pragma endregion
         case m_mov:
         case m_add:
         case m_sadd:
@@ -432,13 +443,9 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
 // Note: returns pointers into the source buffer.
 static ast_t parse(str_t src, arena_t *heap, arena_t stack)
 {
-    ast_t r = { 0
-        // .lineno = 1,
-    };
+    ast_t r = { .lineno = 1, };
 
-    token_t t = {
-        .data = src
-    };
+    token_t t = { .data = src };
 
     vaddr addr = 0;
     labels_t *table = NULL;
@@ -456,14 +463,14 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
             case tok_string:
                 return r;
             case tok_newline:
-                // r.lineno++;
+                r.lineno++;
                 break;
             case tok_eof:
                 for (insn_t *n = r.head; n; n = n->next) {
                     if (n->label.data) {
                         vaddr *addr = upsert(&table, n->label, NULL);
                         if (!addr) {
-                            // r.lineno = n->lineno;
+                            r.lineno = n->lineno;
                             return r;
                         }
                         n->addr = *addr;
@@ -478,7 +485,7 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
                     if (!insn) {
                         return r;
                     }
-                    // insn->lineno = r.lineno++;
+                    insn->lineno = r.lineno++;
                     *tail = insn;
                     tail = &(*tail)->next;
                     addr++;
@@ -924,7 +931,7 @@ static bool run(arena_t heap)
     ast_t ast = parse(src, &heap, a);
     if (!ast.ok) {
         print_str(&err, S("[error] invalid line:"));
-        // print_i32(&err, (int32_t)ast.lineno);
+        print_str(&err, i32_str(ast.lineno));
         print_str(&err, S("\n"));
         flush_output(&err);
         return false;
