@@ -194,14 +194,31 @@ static token_t lex(str_t s)
     }
 
     if (*c == '-' || *c == '+') {
-        for (c++; c < end && is_digit(*c); c++);
-        r.data = str_span(c, end);
-        r.token = str_span(start, c);
-        if (r.token.len < 2) {
-            return r;
+        if (str_has_prefix(str_span(&c[1], end), S("0x"))) {
+            for (c += 3; c < end && is_hex(*c); c++);
+            r.data = str_span(c, end);
+            r.token = str_span(start, c);
+            if (r.token.len < 4) {
+                return r;
+            }
+        }
+        else {
+            for (c++ ;c < end && is_digit(*c); c++);
+            r.data = str_span(c, end);
+            r.token = str_span(start, c);
+            if (r.token.len < 2) {
+                return r;
+            }
         }
         r.type = tok_integer;
         return r;
+    }
+
+    if (str_has_prefix(s, S("0x"))) {
+        for (c += 2; c < end && is_hex(*c); c++);
+        r.data = str_span(c, end);
+        r.token = str_span(start, c);
+        r.type = tok_integer;
     }
 
     if (is_digit(*c)) {
