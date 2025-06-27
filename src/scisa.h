@@ -68,7 +68,7 @@ struct insn_t {
     msg_t *head;
     str_t label;
     vaddr addr;
-    // size_t lineno;
+    size_t lineno;
     opcode_t op;
     int32_t imm[2];
     uint8_t reg[2];
@@ -76,7 +76,7 @@ struct insn_t {
 
 typedef struct ast_t {
     insn_t *head;
-    // size_t lineno;
+    size_t lineno;
     bool ok;
 } ast_t;
 
