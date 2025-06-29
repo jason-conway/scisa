@@ -164,6 +164,10 @@ bool is_register(str_t s)
         return false;
     }
 
+    if (str_equal(s, S("PC")) || str_equal(s, S("SP"))) {
+        return true;
+    }
+
     uint8_t *c = &s.data[0];
     if (to_lower(c[0]) != 'r') {
         return false;
