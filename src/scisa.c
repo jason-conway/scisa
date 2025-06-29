@@ -621,10 +621,10 @@ static result_t execute(psw_t *program, arena_t arena)
     int32_t cmp = 0;
     int32_t regs[r_max] = { 0 };
 
-    for (ptrdiff_t i = 0;; i++) {
+    for (;; regs[PC]++) {
         int32_t a = 0;
         int32_t b = 0;
-        psw_t *w = &program[i];
+        psw_t *w = &program[regs[PC]];
         switch (w->op) {
 #pragma region ABORT
             case op_abort:
@@ -845,36 +845,36 @@ static result_t execute(psw_t *program, arena_t arena)
 #pragma endregion
 #pragma region JMP
             case op_jmp:
-                i = w->operand.addr - 1;
+                regs[PC] = w->operand.addr - 1;
                 break;
             case op_jne:
                 if (cmp) {
-                    i = w->operand.addr - 1;
+                    regs[PC] = w->operand.addr - 1;
                 }
                 break;
             case op_je:
                 if (!cmp) {
-                    i = w->operand.addr - 1;
+                    regs[PC] = w->operand.addr - 1;
                 }
                 break;
             case op_jge:
                 if (cmp >= 0) {
-                    i = w->operand.addr - 1;
+                    regs[PC] = w->operand.addr - 1;
                 }
                 break;
             case op_jg:
                 if (cmp > 0) {
-                    i = w->operand.addr - 1;
+                    regs[PC] = w->operand.addr - 1;
                 }
                 break;
             case op_jle:
                 if (cmp <= 0) {
-                    i = w->operand.addr - 1;
+                    regs[PC] = w->operand.addr - 1;
                 }
                 break;
             case op_jl:
                 if (cmp < 0) {
-                    i = w->operand.addr - 1;
+                    regs[PC] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
@@ -883,8 +883,8 @@ static result_t execute(psw_t *program, arena_t arena)
                 if (len == cap) {
                     return r;
                 }
-                stack[len++] = i;
-                i = w->operand.addr - 1;
+                stack[len++] = regs[PC];
+                regs[PC] = w->operand.addr - 1;
                 break;
 #pragma endregion
 #pragma region RET
@@ -892,7 +892,7 @@ static result_t execute(psw_t *program, arena_t arena)
                 if (!len) {
                     return r;
                 }
-                i = stack[--len];
+                regs[PC] = stack[--len];
                 break;
 #pragma endregion
 #pragma region MSG

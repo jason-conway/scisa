@@ -121,5 +121,7 @@
     r28,    \
     r29,    \
     r30,    \
-    r31
+    r31,    \
+    SP,     \
+    PC
 #pragma endregion
