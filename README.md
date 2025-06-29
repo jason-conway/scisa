@@ -2,53 +2,97 @@
 
 # `scisa`: Sweetened Condensed Instruction Set Architecture
 
-| Operands     | Mnemonic | Description                          | Opcode    |
-| ------------ | -------- | ------------------------------------ | --------- |
-| reg          | inc      | increment register                   | op_incr   |
-| reg          | dec      | decrement register                   | op_decr   |
-| reg          | neg      | signed negate                        | op_negr   |
-| reg          | not      | bitwise complement                   | op_notr   |
-| reg, imm     | mov      | move immediate to register           | op_movri  |
-| reg, reg     | mov      | move register to register            | op_movrr  |
-| reg, imm     | add      | add immediate to register (unsigned) | op_addri  |
-| reg, reg     | add      | add register to register (unsigned)  | op_addrr  |
-| reg, imm     | sadd     | add immediate to register (signed)   | op_saddri |
-| reg, reg     | sadd     | add register to register (signed)    | op_saddrr |
-| reg, imm     | sub      | subtruct immediate from register     | op_subri  |
-| reg, reg     | sub      | subtruct register from register      | op_subrr  |
-| reg, imm     | mul      | multiply immediate with register     | op_mulri  |
-| reg, reg     | mul      | multiply register with register      | op_mulrr  |
-| reg, imm     | div      | unsigned division                    | op_divri  |
-| reg, reg     | div      | unsigned division                    | op_divrr  |
-| reg, imm     | sdiv     | signed division                      | op_sdivri |
-| reg, reg     | sdiv     | signed division                      | op_sdivrr |
-| reg, imm     | mod      | unsigned modulo                      | op_modri  |
-| reg, reg     | mod      | unsigned modulo                      | op_modrr  |
-| reg, imm     | smod     | signed modulo                        | op_smodri |
-| reg, reg     | smod     | signed modulo                        | op_smodrr |
-| reg, imm     | and      | bitwise and                          | op_andri  |
-| reg, reg     | and      | bitwise and                          | op_andrr  |
-| reg, imm     | orr      | bitwise or                           | op_orri   |
-| reg, reg     | orr      | bitwise or                           | op_orrr   |
-| reg, imm     | xor      | bitwise xor                          | op_xorri  |
-| reg, reg     | xor      | bitwise xor                          | op_xorrr  |
-| reg, imm     | lsl      | logical shift left                   | op_lslri  |
-| reg, reg     | lsl      | logical shift left                   | op_lslrr  |
-| reg, imm     | lsr      | logical shift right                  | op_lsrri  |
-| reg, reg     | lsr      | logical shift right                  | op_lsrrr  |
-| reg, imm     | asr      | arithmetic shift right               | op_asrri  |
-| reg, reg     | asr      | arithmetic shift right               | op_asrrr  |
-| imm, reg     | cmp      | signed compare                       | op_cmpir  |
-| reg, imm     | cmp      | signed compare                       | op_cmpri  |
-| reg, reg     | cmp      | signed compare                       | op_cmprr  |
-| label        | jmp      | jump unconditionally                 | op_jmp    |
-| label        | jne      | branch not equal                     | op_jne    |
-| label        | je       | branch if equal                      | op_je     |
-| label        | jge      | branch if greater than or equal to   | op_jge    |
-| label        | jg       | branch if greater than               | op_jg     |
-| label        | jle      | branch if less than or equal to      | op_jle    |
-| label        | jl       | branch if less than                  | op_jl     |
-| label        | call     | call subroutine                      | op_call   |
-|              | ret      | return from subroutine               | op_ret    |
-| string, R, * | msg      | print operands                       | op_msg    |
-|              | halt     | halt successfully                    | op_halt   |
+| Mnemonic | Operands     | Description                                  | Opcode    |
+| -------- | ------------ | -------------------------------------------- | --------- |
+| halt     |              | halt successfully                            | op_halt   |
+| inc      | reg          | increment register                           | op_incr   |
+| dec      | reg          | decrement register                           | op_decr   |
+| neg      | reg          | signed negate                                | op_negr   |
+| mov      | reg, imm     | move immediate to register                   | op_movri  |
+| mov      | reg, reg     | move register to register                    | op_movrr  |
+| add      | reg, imm     | add immediate to register (unsigned)         | op_addri  |
+| add      | reg, reg     | add register to register (unsigned)          | op_addrr  |
+| sadd     | reg, imm     | add immediate to register (signed)           | op_saddri |
+| sadd     | reg, reg     | add register to register (signed)            | op_saddrr |
+| sub      | reg, imm     | subtruct immediate from register             | op_subri  |
+| sub      | reg, reg     | subtruct register from register              | op_subrr  |
+| mul      | reg, imm     | multiply immediate with register             | op_mulri  |
+| mul      | reg, reg     | multiply register with register              | op_mulrr  |
+| div      | reg, imm     | divide register by immediate (unsigned)      | op_divri  |
+| div      | reg, reg     | divide register by register (unsigned)       | op_divrr  |
+| sdiv     | reg, imm     | divide register by immediate (signed)        | op_sdivri |
+| sdiv     | reg, reg     | divide register by register (signed)         | op_sdivrr |
+| mod      | reg, imm     | modulo register by immediate (unsigned)      | op_modri  |
+| mod      | reg, reg     | modulo register by register (unsigned)       | op_modrr  |
+| smod     | reg, imm     | modulo register by immediate (signed)        | op_smodri |
+| smod     | reg, reg     | modulo register by immediate (signed)        | op_smodrr |
+| and      | reg, imm     | bitwise AND register with immediate          | op_andri  |
+| and      | reg, reg     | bitwise AND register with register           | op_andrr  |
+| orr      | reg, imm     | bitwise OR register with immediate           | op_orri   |
+| orr      | reg, reg     | bitwise OR register with register            | op_orrr   |
+| xor      | reg, imm     | bitwise XOR register with immediate          | op_xorri  |
+| xor      | reg, reg     | bitwise XOR register with register           | op_xorrr  |
+| lsl      | reg, imm     | logical shift left register by immediate     | op_lslri  |
+| lsl      | reg, reg     | logical shift left register by register      | op_lslrr  |
+| lsr      | reg, imm     | logical shift right register by immediate    | op_lsrri  |
+| lsr      | reg, reg     | logical shift right register by register     | op_lsrrr  |
+| asr      | reg, imm     | arithmetic shift right register by immediate | op_asrri  |
+| asr      | reg, reg     | arithmetic shift right register by register  | op_asrrr  |
+| ldrb     | reg, imm     | load byte from `[imm]` into register         |           |
+| ldrb     | reg, reg     | load byte from `[reg]` into register         |           |
+| ldrh     | reg, imm     | load halfword from `[imm]` into register     |           |
+| ldrh     | reg, reg     | load halfword from `[reg]` into register     |           |
+| ldr      | reg, imm     | load word from `[imm]` into register         |           |
+| ldr      | reg, reg     | load word from `[reg]` into register         |           |
+| strb     | reg, imm     | store byte from register at `[imm]`          |           |
+| strb     | reg, reg     | store byte from register at `[reg]`          |           |
+| strh     | reg, imm     | store halfword from register at `[imm]`      |           |
+| strh     | reg, reg     | store halfword from register at `[reg]`      |           |
+| str      | reg, imm     | store word from register at `[imm]`          |           |
+| str      | reg, reg     | store word from register at `[reg]`          |           |
+| msg      | string, R, * | print operands                               | op_msg    |
+| cmp      | imm, reg     | compare immediate with register (signed)     | op_cmpir  |
+| cmp      | reg, imm     | compare register with immediate (signed)     | op_cmpri  |
+| cmp      | reg, reg     | compare register with register (signed)      | op_cmprr  |
+| jmp      | `label`      | jump to `label` unconditionally              | op_jmp    |
+| jne      | `label`      | jump to `label` if not equal                 | op_jne    |
+| je       | `label`      | jump to `label` if equal                     | op_je     |
+| jge      | `label`      | jump to `label` if greater than or equal to  | op_jge    |
+| jg       | `label`      | jump to `label` if greater than              | op_jg     |
+| jle      | `label`      | jump to `label` if less than or equal to     | op_jle    |
+| jl       | `label`      | jump to `label` if less than                 | op_jl     |
+| call     | `label`      | call subroutine                              | op_call   |
+| ret      |              | return from subroutine                       | op_ret    |
+
+
+## Notes
+
+ldr / str
+
+ldr <reg> <addr>
+
+ldr r10 0x0000
+ldr r11 0x0004
+ldr r12 0x0008
+ldr r13 0x000c
+
+mov r1, 545454
+mov r4, 0x0004
+str r4, r1
+
+str r4, 545454
+
+str <reg>
+str <addr> <reg>
+
+str <addr> <imm>
+
+ldrri
+    ldr <reg>, <imm_addr>
+ldrrr
+    ldr <reg>, <reg_addr>
+
+strri
+    str <reg_addr>, <imm_val>
+strrr
+    str <reg_addr>, <reg_val>

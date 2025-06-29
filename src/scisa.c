@@ -253,7 +253,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
     switch (m) {
         case m_null:
             return NULL;
-#pragma region One operand
+
         case m_inc:
         case m_dec:
         case m_neg:
@@ -271,15 +271,14 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     return NULL;
             }
             break;
-#pragma endregion
-#pragma region Zero operands
+
         case m_ret:
             n->op = op_ret;
             break;
         case m_halt:
             n->op = op_halt;
             break;
-#pragma endregion
+
         case m_mov:
         case m_add:
         case m_sadd:
@@ -295,6 +294,12 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
         case m_lsl:
         case m_lsr:
         case m_asr:
+        case m_ldrb:
+        case m_ldrh:
+        case m_ldr:
+        case m_strb:
+        case m_strh:
+        case m_str:
             // op will start as imm variant of `m`
             n->op = op_movri + 2 * (m - m_mov);
 
@@ -560,6 +565,12 @@ static psw_t *assemble(insn_t *head, arena_t *arena)
             case op_lslri:
             case op_lsrri:
             case op_asrri:
+            case op_ldrbri:
+            case op_ldrhri:
+            case op_ldrri:
+            case op_strbri:
+            case op_strhri:
+            case op_strri:
             case op_cmpri:
                 program[i].reg[0] = n->reg[0];
                 program[i].operand.imm = n->imm[1];
@@ -579,6 +590,12 @@ static psw_t *assemble(insn_t *head, arena_t *arena)
             case op_lslrr:
             case op_lsrrr:
             case op_asrrr:
+            case op_ldrbrr:
+            case op_ldrhrr:
+            case op_ldrrr:
+            case op_strbrr:
+            case op_strhrr:
+            case op_strrr:
             case op_cmprr:
                 program[i].reg[0] = n->reg[0];
                 program[i].reg[1] = n->reg[1];
@@ -616,7 +633,9 @@ static result_t execute(psw_t *program, arena_t arena)
 
     ptrdiff_t len = 0;
     ptrdiff_t cap = 1 << 10;
-    ptrdiff_t *stack = alloc(&arena, uint8_t, cap);
+    int32_t *callstack = alloc(&arena, uint8_t, cap);
+
+    uint8_t *mem = alloc(&arena, uint8_t, 1 << 16);
 
     int32_t cmp = 0;
     int32_t regs[r_max] = { 0 };
@@ -824,6 +843,46 @@ static result_t execute(psw_t *program, arena_t arena)
                 regs[w->reg[0]] >>= ((uint32_t)regs[w->reg[1]] & 0x1f);
                 break;
 #pragma endregion
+#pragma region LDR
+            case op_ldrbri:
+                regs[w->reg[0]] = *(uint8_t *)(mem + w->operand.imm);
+                break;
+            case op_ldrbrr:
+                regs[w->reg[0]] = *(uint8_t *)(mem + regs[w->reg[1]]);
+                break;
+            case op_ldrhri:
+                regs[w->reg[0]] = *(uint16_t *)(mem + w->operand.imm);
+                break;
+            case op_ldrhrr:
+                regs[w->reg[0]] = *(uint16_t *)(mem + regs[w->reg[1]]);
+                break;
+            case op_ldrri:
+                regs[w->reg[0]] = *(uint32_t *)(mem + w->operand.imm);
+                break;
+            case op_ldrrr:
+                regs[w->reg[0]] = *(uint32_t *)(mem + regs[w->reg[1]]);
+                break;
+#pragma endregion
+#pragma region STR
+            case op_strbri:
+                *(uint8_t *)(mem + w->operand.imm) = (uint8_t)regs[w->reg[0]];
+                break;
+            case op_strbrr:
+                *(uint8_t *)(mem + regs[w->reg[1]]) = (uint8_t)regs[w->reg[0]];
+                break;
+            case op_strhri:
+                *(uint16_t *)(mem + w->operand.imm) = (uint16_t)regs[w->reg[0]];
+                break;
+            case op_strhrr:
+                *(uint16_t *)(mem + regs[w->reg[1]]) = (uint16_t)regs[w->reg[0]];
+                break;
+            case op_strri:
+                *(uint32_t *)(mem + w->operand.imm) = (uint32_t)regs[w->reg[0]];
+                break;
+            case op_strrr:
+                *(uint32_t *)(mem + regs[w->reg[1]]) = (uint32_t)regs[w->reg[0]];
+                break;
+#pragma endregion
 #pragma region CMP
             case op_cmpii:
                 return r;
@@ -883,7 +942,7 @@ static result_t execute(psw_t *program, arena_t arena)
                 if (len == cap) {
                     return r;
                 }
-                stack[len++] = regs[PC];
+                callstack[len++] = regs[PC];
                 regs[PC] = w->operand.addr - 1;
                 break;
 #pragma endregion
@@ -892,7 +951,7 @@ static result_t execute(psw_t *program, arena_t arena)
                 if (!len) {
                     return r;
                 }
-                regs[PC] = stack[--len];
+                regs[PC] = callstack[--len];
                 break;
 #pragma endregion
 #pragma region MSG
