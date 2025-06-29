@@ -1,24 +1,23 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "str.h"
-#include "std.h"
 #include "isa.h"
+#include "std.h"
+#include "str.h"
 
-#define countof(a)   (sizeof(a) / sizeof(*(a)))
-#define lengthof(s)  (countof(s) - 1)
+#define countof(a)     (sizeof(a) / sizeof(*(a)))
+#define lengthof(s)    (countof(s) - 1)
 #define alloc(a, t, n) __alloc(a, sizeof(t), _Alignof(t), n)
 
-
-#define GEN_MNEMONIC_ID(m)  m_##m
-#define GEN_OPCODE_ID(o)    op_##o
-#define GEN_STR(x)          E(STR(x))
+#define GEN_MNEMONIC_ID(m) m_##m
+#define GEN_OPCODE_ID(o)   op_##o
+#define GEN_STR(x)         E(STR(x))
 
 
 typedef enum opcode_t {

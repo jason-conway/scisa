@@ -2,54 +2,66 @@
 
 #pragma region OPCODES
 #define OPCODE_LIST \
-    abort, \
-    incr, \
-    decr, \
-    negr, \
-    movri, \
-    movrr, \
-    addri, \
-    addrr, \
+    abort,  \
+    incr,   \
+    decr,   \
+    negr,   \
+    movri,  \
+    movrr,  \
+    addri,  \
+    addrr,  \
     saddri, \
     saddrr, \
-    subri, \
-    subrr, \
-    mulri, \
-    mulrr, \
-    divri, \
-    divrr, \
+    subri,  \
+    subrr,  \
+    mulri,  \
+    mulrr,  \
+    divri,  \
+    divrr,  \
     sdivri, \
     sdivrr, \
-    modri, \
-    modrr, \
+    modri,  \
+    modrr,  \
     smodri, \
     smodrr, \
-    andri, \
-    andrr, \
-    orri, \
-    orrr, \
-    xorri, \
-    xorrr, \
-    lslri, \
-    lslrr, \
-    lsrri, \
-    lsrrr, \
-    asrri, \
-    asrrr, \
-    cmpii, \
-    cmpir, \
-    cmpri, \
-    cmprr, \
-    jmp, \
-    jne, \
-    je, \
-    jge, \
-    jg, \
-    jle, \
-    jl, \
-    call, \
-    ret, \
-    msg, \
+    andri,  \
+    andrr,  \
+    orri,   \
+    orrr,   \
+    xorri,  \
+    xorrr,  \
+    lslri,  \
+    lslrr,  \
+    lsrri,  \
+    lsrrr,  \
+    asrri,  \
+    asrrr,  \
+    ldrbri, \
+    ldrbrr, \
+    ldrhri, \
+    ldrhrr, \
+    ldrri,  \
+    ldrrr,  \
+    strbri, \
+    strbrr, \
+    strhri, \
+    strhrr, \
+    strri,  \
+    strrr,  \
+    cmpii,  \
+    cmpir,  \
+    cmpri,  \
+    cmprr,  \
+    jmp,    \
+    jne,    \
+    je,     \
+    jge,    \
+    jg,     \
+    jle,    \
+    jl,     \
+    call,   \
+    ret,    \
+    msg,    \
     halt
 #pragma endregion
 
@@ -75,6 +87,12 @@
     lsl,    \
     lsr,    \
     asr,    \
+    ldrb,   \
+    ldrh,   \
+    ldr,    \
+    strb,   \
+    strh,   \
+    str,    \
     cmp,    \
     jmp,    \
     jne,    \
