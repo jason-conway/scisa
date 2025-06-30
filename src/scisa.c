@@ -93,6 +93,7 @@ static bool str_reg(reg_t *r, str_t s)
     static const str_t names[] = {
         MAP(GEN_STR, REGISTER_LIST)
     };
+    s = str_lower(s);
     for (size_t i = 0; i < countof(names); i++) {
         if (str_equal(names[i], s)) {
             *r = i;
@@ -257,7 +258,9 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
         case m_inc:
         case m_dec:
         case m_neg:
-            // One opcode per mnemonic
+        case m_push:
+        case m_pop:
+            // op reg
             n->op = op_incr + (m - m_inc);
             t = lex(t.data);
             switch (t.type) {
@@ -548,6 +551,8 @@ static psw_t *assemble(insn_t *head, arena_t *arena)
             case op_incr:
             case op_decr:
             case op_negr:
+            case op_pushr:
+            case op_popr:
                 program[i].reg[0] = n->reg[0];
                 break;
             case op_movri:
@@ -631,14 +636,15 @@ static result_t execute(psw_t *program, arena_t arena)
     r.out.cap = 1 << 6;
     r.out.data = alloc(&arena, uint8_t, r.out.cap);
 
-    ptrdiff_t len = 0;
-    ptrdiff_t cap = 1 << 10;
-    int32_t *callstack = alloc(&arena, uint8_t, cap);
 
-    uint8_t *mem = alloc(&arena, uint8_t, 1 << 16);
+    enum cfg { STACK_TOP = 1 << 16 };
+    uint8_t *stack = alloc(&arena, uint8_t, STACK_TOP);
 
     int32_t cmp = 0;
     int32_t regs[r_max] = { 0 };
+    regs[FP] = STACK_TOP;
+    regs[SP] = STACK_TOP;
+    regs[LR] = -1;
 
     for (;; regs[PC]++) {
         int32_t a = 0;
@@ -649,15 +655,31 @@ static result_t execute(psw_t *program, arena_t arena)
             case op_abort:
                 return r;
 #pragma endregion
-#pragma region INC/DEC/NEG
+#pragma region INC
             case op_incr:
                 regs[w->reg[0]] += (uint32_t)1;
                 break;
+#pragma endregion
+#pragma region DEC
             case op_decr:
                 regs[w->reg[0]] -= (uint32_t)1;
                 break;
+#pragma endregion
+#pragma region NEG
             case op_negr:
                 regs[w->reg[0]] = -regs[w->reg[0]];
+                break;
+#pragma endregion
+#pragma region PUSH
+            case op_pushr:
+                regs[SP] -= sizeof(uint32_t);
+                __builtin_memcpy_inline(&stack[regs[SP]], &regs[w->reg[0]], sizeof(uint32_t));
+                break;
+#pragma endregion
+#pragma region POP
+            case op_popr:
+                __builtin_memcpy_inline(&regs[w->reg[0]], &stack[regs[SP]], sizeof(uint32_t));
+                regs[SP] += sizeof(uint32_t);
                 break;
 #pragma endregion
 #pragma region MOV
@@ -845,42 +867,42 @@ static result_t execute(psw_t *program, arena_t arena)
 #pragma endregion
 #pragma region LDR
             case op_ldrbri:
-                regs[w->reg[0]] = *(uint8_t *)(mem + w->operand.imm);
+                __builtin_memcpy_inline(&regs[w->reg[0]], &stack[w->operand.imm], sizeof(uint8_t));
                 break;
             case op_ldrbrr:
-                regs[w->reg[0]] = *(uint8_t *)(mem + regs[w->reg[1]]);
+                __builtin_memcpy_inline(&regs[w->reg[0]], &stack[regs[w->reg[1]]], sizeof(uint8_t));
                 break;
             case op_ldrhri:
-                regs[w->reg[0]] = *(uint16_t *)(mem + w->operand.imm);
+                __builtin_memcpy_inline(&regs[w->reg[0]], &stack[w->operand.imm], sizeof(uint16_t));
                 break;
             case op_ldrhrr:
-                regs[w->reg[0]] = *(uint16_t *)(mem + regs[w->reg[1]]);
+                __builtin_memcpy_inline(&regs[w->reg[0]], &stack[regs[w->reg[1]]], sizeof(uint16_t));
                 break;
             case op_ldrri:
-                regs[w->reg[0]] = *(uint32_t *)(mem + w->operand.imm);
+                __builtin_memcpy_inline(&regs[w->reg[0]], &stack[w->operand.imm], sizeof(uint32_t));
                 break;
             case op_ldrrr:
-                regs[w->reg[0]] = *(uint32_t *)(mem + regs[w->reg[1]]);
+                __builtin_memcpy_inline(&regs[w->reg[0]], &stack[regs[w->reg[1]]], sizeof(uint32_t));
                 break;
 #pragma endregion
 #pragma region STR
             case op_strbri:
-                *(uint8_t *)(mem + w->operand.imm) = (uint8_t)regs[w->reg[0]];
+                __builtin_memcpy_inline(&stack[w->operand.imm], &regs[w->reg[0]], sizeof(uint8_t));
                 break;
             case op_strbrr:
-                *(uint8_t *)(mem + regs[w->reg[1]]) = (uint8_t)regs[w->reg[0]];
+                __builtin_memcpy_inline(&stack[regs[w->reg[1]]], &regs[w->reg[0]], sizeof(uint8_t));
                 break;
             case op_strhri:
-                *(uint16_t *)(mem + w->operand.imm) = (uint16_t)regs[w->reg[0]];
+                __builtin_memcpy_inline(&stack[w->operand.imm], &regs[w->reg[0]], sizeof(uint16_t));
                 break;
             case op_strhrr:
-                *(uint16_t *)(mem + regs[w->reg[1]]) = (uint16_t)regs[w->reg[0]];
+                __builtin_memcpy_inline(&stack[regs[w->reg[1]]], &regs[w->reg[0]], sizeof(uint16_t));
                 break;
             case op_strri:
-                *(uint32_t *)(mem + w->operand.imm) = (uint32_t)regs[w->reg[0]];
+                __builtin_memcpy_inline(&stack[w->operand.imm], &regs[w->reg[0]], sizeof(uint32_t));
                 break;
             case op_strrr:
-                *(uint32_t *)(mem + regs[w->reg[1]]) = (uint32_t)regs[w->reg[0]];
+                __builtin_memcpy_inline(&stack[regs[w->reg[1]]], &regs[w->reg[0]], sizeof(uint32_t));
                 break;
 #pragma endregion
 #pragma region CMP
@@ -939,19 +961,21 @@ static result_t execute(psw_t *program, arena_t arena)
 #pragma endregion
 #pragma region CALL
             case op_call:
-                if (len == cap) {
-                    return r;
-                }
-                callstack[len++] = regs[PC];
+                // FIXME
+                // if (current_frame == 1024) {
+                //     return r;
+                // }
+                // callstack[current_frame++] = regs[PC];
+                regs[LR] = regs[PC];
                 regs[PC] = w->operand.addr - 1;
                 break;
 #pragma endregion
 #pragma region RET
             case op_ret:
-                if (!len) {
+                if (regs[LR] < 0) {
                     return r;
                 }
-                regs[PC] = callstack[--len];
+                regs[PC] = regs[LR];
                 break;
 #pragma endregion
 #pragma region MSG

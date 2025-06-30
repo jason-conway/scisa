@@ -51,6 +51,8 @@ bool is_lower(uint8_t c);
 
 uint8_t to_lower(uint8_t c);
 
+str_t str_lower(str_t s);
+
 bool is_letter(uint8_t c);
 
 bool is_register(str_t s);

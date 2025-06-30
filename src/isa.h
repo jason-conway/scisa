@@ -6,6 +6,8 @@
     incr,   \
     decr,   \
     negr,   \
+    pushr,  \
+    popr,   \
     movri,  \
     movrr,  \
     addri,  \
@@ -70,6 +72,8 @@
     inc,    \
     dec,    \
     neg,    \
+    push,   \
+    pop,    \
     ret,    \
     halt,   \
     mov,    \
@@ -140,6 +144,8 @@
     r29,    \
     r30,    \
     r31,    \
-    SP,     \
-    PC
+    PC,     \
+    LR,     \
+    FP,     \
+    SP
 #pragma endregion

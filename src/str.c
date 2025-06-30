@@ -147,6 +147,16 @@ uint8_t to_lower(uint8_t c)
     return is_lower(c) ? c : (uint8_t)(c + 'a' - 'A');
 }
 
+str_t str_lower(str_t s)
+{
+    for (int64_t i = 0; i < s.len; i++) {
+        if (is_letter(s.data[i])) {
+            s.data[i] = to_lower(s.data[i]);
+        }
+    }
+    return s;
+}
+
 bool is_letter(uint8_t c)
 {
     return is_upper(c) || is_lower(c);
@@ -163,13 +173,16 @@ bool is_register(str_t s)
     if (!len || len > 3) {
         return false;
     }
-
-    if (str_equal(s, S("PC")) || str_equal(s, S("SP"))) {
+    s = str_lower(s);
+    if (str_equal(s, S("pc")) || str_equal(s, S("lr"))) {
+        return true;
+    }
+    if (str_equal(s, S("sp")) || str_equal(s, S("fp"))) {
         return true;
     }
 
     uint8_t *c = &s.data[0];
-    if (to_lower(c[0]) != 'r') {
+    if (c[0] != 'r') {
         return false;
     }
     for (int64_t i = 1; i < s.len; i++) {

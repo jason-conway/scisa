@@ -2,9 +2,57 @@
 
 # `scisa`: Sweetened Condensed Instruction Set Architecture
 
+## SCISA VM
+
+
+## The SCISA Instruction Set
+
+| Mnemonic | Operands         | Operation                      |
+| -------- | ---------------- | ------------------------------ |
+| ADD      | reg, reg/imm     | r += r/imm                     |
+| SADD     | reg, reg/imm     | r += (signed)r/imm             |
+| SUB      | reg, reg/imm     | r -= r/imm                     |
+| MUL      | reg, reg/imm     | r *= r/imm                     |
+| DIV      | reg, reg/imm     | r /= r/imm                     |
+| SDIV     | reg, reg/imm     | r /= (signed)r/imm             |
+| MOD      | reg, reg/imm     | r %= r/imm                     |
+| SMOD     | reg, reg/imm     | r %= (signed)r/imm             |
+| AND      | reg, reg/imm     | r &= r/imm                     |
+| OR       | reg, reg/imm     | r \|= r/imm                    |
+| XOR      | reg, reg/imm     | r ^= r/imm                     |
+| LSL      | reg, reg/imm     | r <<= r/imm                    |
+| LSR      | reg, reg/imm     | r >>= r/imm                    |
+| ASR      | reg, reg/imm     | (signed)r >>= r/imm            |
+| MOV      | reg, reg/imm     | r = r/imm                      |
+| MSG      | string, reg, *   | print arguments to stdout      |
+| INC      | reg              | r++                            |
+| DEC      | reg              | r--                            |
+| CMP      | reg/imm, reg/imm | FLAGS = (d > s) - (d < s)      |
+| JMP      | label            | PC := label                    |
+| JNE      | label            | if FLAGS != 0 then PC := label |
+| JE       | label            | if FLAGS == 0 then PC := label |
+| JGE      | label            | if FLAGS >= 0 then PC := label |
+| JG       | label            | if FLAGS > 0 then PC := label  |
+| JLE      | label            | if FLAGS <= 0 then PC := label |
+| JL       | label            | if FLAGS < 0 then PC := label  |
+| CALL     | label            | PUSH(PC); PC := label          |
+| RET      |                  | PC := POP()                    |
+| HLT      |                  | halt successfully              |
+
+
+| Mnemonic | Operands     | Operation                                           |
+| -------- | ------------ | --------------------------------------------------- |
+| LDRB     | reg, reg/imm | load byte from memory into destination register     |
+| LDRH     | reg, reg/imm | load halfword from memory into destination register |
+| LDR      | reg, reg/imm | load word from memory into destination register     |
+| STRB     | reg, reg/imm | store byte from source register into memory         |
+| STRH     | reg, reg/imm | store halfword from source register into memory     |
+| STR      | reg, reg/imm | store word from source register into memory         |
+
+
 | Mnemonic | Operands     | Description                                  | Opcode    |
 | -------- | ------------ | -------------------------------------------- | --------- |
-| halt     |              | halt successfully                            | op_halt   |
+| halt     |              |                                              | op_halt   |
 | inc      | reg          | increment register                           | op_incr   |
 | dec      | reg          | decrement register                           | op_decr   |
 | neg      | reg          | signed negate                                | op_negr   |
@@ -66,33 +114,3 @@
 
 
 ## Notes
-
-ldr / str
-
-ldr <reg> <addr>
-
-ldr r10 0x0000
-ldr r11 0x0004
-ldr r12 0x0008
-ldr r13 0x000c
-
-mov r1, 545454
-mov r4, 0x0004
-str r4, r1
-
-str r4, 545454
-
-str <reg>
-str <addr> <reg>
-
-str <addr> <imm>
-
-ldrri
-    ldr <reg>, <imm_addr>
-ldrrr
-    ldr <reg>, <reg_addr>
-
-strri
-    str <reg_addr>, <imm_val>
-strrr
-    str <reg_addr>, <reg_val>
