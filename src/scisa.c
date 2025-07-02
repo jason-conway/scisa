@@ -79,6 +79,7 @@ static bool is_mnemonic(str_t s, mnemonic_t *m)
     static const str_t names[] = {
         MAP(GEN_STR, MNEMONICS_LIST)
     };
+    s = str_lower(s);
     for (size_t i = 0; i < countof(names); i++) {
         if (str_equal(names[i], s)) {
             *m = i + 1;
@@ -636,20 +637,20 @@ static result_t execute(psw_t *program, arena_t arena)
     r.out.cap = 1 << 6;
     r.out.data = alloc(&arena, uint8_t, r.out.cap);
 
-
-    enum cfg { STACK_TOP = 1 << 16 };
+    enum cfg { STACK_TOP = 1 << 21 };
     uint8_t *stack = alloc(&arena, uint8_t, STACK_TOP);
 
-    int32_t cmp = 0;
     int32_t regs[r_max] = { 0 };
-    regs[FP] = STACK_TOP;
-    regs[SP] = STACK_TOP;
-    regs[LR] = -1;
+    regs[fp] = STACK_TOP;
+    regs[sp] = STACK_TOP;
+    regs[lr] = -1;
+    regs[cc] = 0;
+    regs[pc] = 0x0;
 
-    for (;; regs[PC]++) {
+    for (;; regs[pc]++) {
         int32_t a = 0;
         int32_t b = 0;
-        psw_t *w = &program[regs[PC]];
+        psw_t *w = &program[regs[pc]];
         switch (w->op) {
 #pragma region ABORT
             case op_abort:
@@ -672,14 +673,14 @@ static result_t execute(psw_t *program, arena_t arena)
 #pragma endregion
 #pragma region PUSH
             case op_pushr:
-                regs[SP] -= sizeof(uint32_t);
-                __builtin_memcpy_inline(&stack[regs[SP]], &regs[w->reg[0]], sizeof(uint32_t));
+                regs[sp] -= sizeof(uint32_t);
+                __builtin_memcpy_inline(&stack[regs[sp]], &regs[w->reg[0]], sizeof(uint32_t));
                 break;
 #pragma endregion
 #pragma region POP
             case op_popr:
-                __builtin_memcpy_inline(&regs[w->reg[0]], &stack[regs[SP]], sizeof(uint32_t));
-                regs[SP] += sizeof(uint32_t);
+                __builtin_memcpy_inline(&regs[w->reg[0]], &stack[regs[sp]], sizeof(uint32_t));
+                regs[sp] += sizeof(uint32_t);
                 break;
 #pragma endregion
 #pragma region MOV
@@ -911,71 +912,66 @@ static result_t execute(psw_t *program, arena_t arena)
             case op_cmpir:
                 a = w->operand.imm;
                 b = regs[w->reg[1]];
-                cmp = (a > b) - (a < b);
+                regs[cc] = (a > b) - (a < b);
                 break;
             case op_cmpri:
                 a = regs[w->reg[0]];
                 b = w->operand.imm;
-                cmp = (a > b) - (a < b);
+                regs[cc] = (a > b) - (a < b);
                 break;
             case op_cmprr:
                 a = regs[w->reg[0]];
                 b = regs[w->reg[1]];
-                cmp = (a > b) - (a < b);
+                regs[cc] = (a > b) - (a < b);
                 break;
 #pragma endregion
 #pragma region JMP
             case op_jmp:
-                regs[PC] = w->operand.addr - 1;
+                regs[pc] = w->operand.addr - 1;
                 break;
             case op_jne:
-                if (cmp) {
-                    regs[PC] = w->operand.addr - 1;
+                if (regs[cc]) {
+                    regs[pc] = w->operand.addr - 1;
                 }
                 break;
             case op_je:
-                if (!cmp) {
-                    regs[PC] = w->operand.addr - 1;
+                if (!regs[cc]) {
+                    regs[pc] = w->operand.addr - 1;
                 }
                 break;
             case op_jge:
-                if (cmp >= 0) {
-                    regs[PC] = w->operand.addr - 1;
+                if (regs[cc] >= 0) {
+                    regs[pc] = w->operand.addr - 1;
                 }
                 break;
             case op_jg:
-                if (cmp > 0) {
-                    regs[PC] = w->operand.addr - 1;
+                if (regs[cc] > 0) {
+                    regs[pc] = w->operand.addr - 1;
                 }
                 break;
             case op_jle:
-                if (cmp <= 0) {
-                    regs[PC] = w->operand.addr - 1;
+                if (regs[cc] <= 0) {
+                    regs[pc] = w->operand.addr - 1;
                 }
                 break;
             case op_jl:
-                if (cmp < 0) {
-                    regs[PC] = w->operand.addr - 1;
+                if (regs[cc] < 0) {
+                    regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
 #pragma region CALL
             case op_call:
-                // FIXME
-                // if (current_frame == 1024) {
-                //     return r;
-                // }
-                // callstack[current_frame++] = regs[PC];
-                regs[LR] = regs[PC];
-                regs[PC] = w->operand.addr - 1;
+                regs[lr] = regs[pc];
+                regs[pc] = w->operand.addr - 1;
                 break;
 #pragma endregion
 #pragma region RET
             case op_ret:
-                if (regs[LR] < 0) {
+                if (regs[lr] < 0) {
                     return r;
                 }
-                regs[PC] = regs[LR];
+                regs[pc] = regs[lr];
                 break;
 #pragma endregion
 #pragma region MSG
