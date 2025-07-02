@@ -180,6 +180,9 @@ bool is_register(str_t s)
     if (str_equal(s, S("sp")) || str_equal(s, S("fp"))) {
         return true;
     }
+    if (str_equal(s, S("cc"))) {
+        return true;
+    }
 
     uint8_t *c = &s.data[0];
     if (c[0] != 'r') {

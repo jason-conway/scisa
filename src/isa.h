@@ -144,8 +144,9 @@
     r29,    \
     r30,    \
     r31,    \
-    PC,     \
-    LR,     \
-    FP,     \
-    SP
+    pc,     \
+    lr,     \
+    fp,     \
+    sp,     \
+    cc
 #pragma endregion
