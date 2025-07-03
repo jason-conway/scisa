@@ -184,6 +184,20 @@ static token_t lex(str_t s)
         return r;
     }
 
+    if (*c == '(') {
+        r.data = str_span(++c, end);
+        r.token = str_span(start, c);
+        r.type = tok_lparen;
+        return r;
+    }
+
+    if (*c == ')') {
+        r.data = str_span(++c, end);
+        r.token = str_span(start, c);
+        r.type = tok_rparen;
+        return r;
+    }
+
     if (*c == '\'') {
         for (c++; c < end &&  *c != '\''; c++);
         if (c == end) {
@@ -487,6 +501,8 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
             case tok_integer:
             case tok_register:
             case tok_string:
+            case tok_lparen:
+            case tok_rparen:
                 return r;
             case tok_newline:
                 r.lineno++;

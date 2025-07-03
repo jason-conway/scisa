@@ -45,6 +45,8 @@ typedef struct token_t {
         tok_newline,
         tok_comma,
         tok_colon,
+        tok_lparen,
+        tok_rparen,
         tok_integer,
         tok_string,
         tok_register,
