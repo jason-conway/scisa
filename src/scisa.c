@@ -269,7 +269,6 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
     switch (m) {
         case m_null:
             return NULL;
-
         case m_inc:
         case m_dec:
         case m_neg:
@@ -289,14 +288,12 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     return NULL;
             }
             break;
-
         case m_ret:
             n->op = op_ret;
             break;
         case m_halt:
             n->op = op_halt;
             break;
-
         case m_mov:
         case m_add:
         case m_sadd:
@@ -312,12 +309,6 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
         case m_lsl:
         case m_lsr:
         case m_asr:
-        case m_ldrb:
-        case m_ldrh:
-        case m_ldr:
-        case m_strb:
-        case m_strh:
-        case m_str:
             // op will start as imm variant of `m`
             n->op = op_movri + 2 * (m - m_mov);
 
@@ -356,6 +347,94 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                         return NULL;
                     }
                     n->reg[1] = reg;
+                    break;
+                default:
+                    return NULL;
+            }
+            break;
+        case m_ldrb:
+        case m_ldrh:
+        case m_ldr:
+        case m_strb:
+        case m_strh:
+        case m_str:
+            n->op = op_ldrbri + 3 * (m - m_ldrb);
+
+            // reg
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_register:
+                    if (!str_reg(&reg, t.token)) {
+                        return NULL;
+                    }
+                    n->reg[0] = reg;
+                    break;
+                default:
+                    return NULL;
+            }
+            // Eat comma
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_comma:
+                    break;
+                default:
+                    return NULL;
+            }
+
+            // start of second operand
+            t = lex(t.data);
+            switch (t.type) {
+                // if second operand is a reg, we're all done
+                case tok_register:
+                    n->op++; // change to reg-reg variant
+                    if (!str_reg(&reg, t.token)) {
+                        return NULL;
+                    }
+                    n->reg[1] = reg;
+                    break;
+                // but if it's an integer, it could be an offset from another reg
+                case tok_integer:
+                    if (!str_i32(&imm, t.token)) {
+                        return NULL;
+                    }
+                    n->imm[1] = imm;
+                    // now lex and check for left paren
+                    // if the operand is just the integer, we have to bail
+                    // from here, breaking will cause us to fallthrough
+                    // and call lex again
+                    t = lex(t.data);
+                    switch (t.type) {
+                        case tok_newline:
+                        case tok_eof:
+                            *src = t.data;
+                            return n;
+                        case tok_lparen:
+                    break;
+                        default:
+                            return NULL;
+                    }
+                    // last token was '('
+                    // ensure next token is register and parse
+                    t = lex(t.data);
+                    switch (t.type) {
+                case tok_register:
+                            n->op += 2; // an elusive op_XXXrir
+                    if (!str_reg(&reg, t.token)) {
+                        return NULL;
+                    }
+                    n->reg[1] = reg;
+                            break;
+                        default:
+                            return NULL;
+                    }
+                    // ensure rparen
+                    t = lex(t.data);
+                    switch (t.type) {
+                        case tok_rparen:
+                            break;
+                        default:
+                            return NULL;
+                    }
                     break;
                 default:
                     return NULL;
@@ -626,6 +705,16 @@ static psw_t *assemble(insn_t *head, arena_t *arena)
                 program[i].operand.imm = n->imm[0];
                 program[i].reg[1] = n->reg[1];
                 break;
+            case op_ldrbrir:
+            case op_ldrhrir:
+            case op_ldrrir:
+            case op_strbrir:
+            case op_strhrir:
+            case op_strrir:
+                program[i].operand.imm = n->imm[1];
+                program[i].reg[0] = n->reg[0];
+                program[i].reg[1] = n->reg[1];
+                break;
             case op_jmp:
             case op_jne:
             case op_je:
@@ -666,6 +755,7 @@ static result_t execute(psw_t *program, arena_t arena)
     for (;; regs[pc]++) {
         int32_t a = 0;
         int32_t b = 0;
+        int32_t rel = 0;
         psw_t *w = &program[regs[pc]];
         switch (w->op) {
 #pragma region ABORT
@@ -889,17 +979,29 @@ static result_t execute(psw_t *program, arena_t arena)
             case op_ldrbrr:
                 __builtin_memcpy_inline(&regs[w->reg[0]], &stack[regs[w->reg[1]]], sizeof(uint8_t));
                 break;
+            case op_ldrbrir:
+                rel =regs[w->reg[1]] + w->operand.imm;
+                __builtin_memcpy_inline(&regs[w->reg[0]], &stack[rel], sizeof(uint8_t));
+                break;
             case op_ldrhri:
                 __builtin_memcpy_inline(&regs[w->reg[0]], &stack[w->operand.imm], sizeof(uint16_t));
                 break;
             case op_ldrhrr:
                 __builtin_memcpy_inline(&regs[w->reg[0]], &stack[regs[w->reg[1]]], sizeof(uint16_t));
                 break;
+            case op_ldrhrir:
+                rel =regs[w->reg[1]] + w->operand.imm;
+                __builtin_memcpy_inline(&regs[w->reg[0]], &stack[rel], sizeof(uint16_t));
+                break;
             case op_ldrri:
                 __builtin_memcpy_inline(&regs[w->reg[0]], &stack[w->operand.imm], sizeof(uint32_t));
                 break;
             case op_ldrrr:
                 __builtin_memcpy_inline(&regs[w->reg[0]], &stack[regs[w->reg[1]]], sizeof(uint32_t));
+                break;
+            case op_ldrrir:
+                rel =regs[w->reg[1]] + w->operand.imm;
+                __builtin_memcpy_inline(&regs[w->reg[0]], &stack[rel], sizeof(uint32_t));
                 break;
 #pragma endregion
 #pragma region STR
@@ -909,17 +1011,29 @@ static result_t execute(psw_t *program, arena_t arena)
             case op_strbrr:
                 __builtin_memcpy_inline(&stack[regs[w->reg[1]]], &regs[w->reg[0]], sizeof(uint8_t));
                 break;
+            case op_strbrir:
+                rel = regs[w->reg[1]] + w->operand.imm;
+                __builtin_memcpy_inline(&stack[rel], &regs[w->reg[0]], sizeof(uint8_t));
+                break;
             case op_strhri:
                 __builtin_memcpy_inline(&stack[w->operand.imm], &regs[w->reg[0]], sizeof(uint16_t));
                 break;
             case op_strhrr:
                 __builtin_memcpy_inline(&stack[regs[w->reg[1]]], &regs[w->reg[0]], sizeof(uint16_t));
                 break;
+            case op_strhrir:
+                rel = regs[w->reg[1]] + w->operand.imm;
+                __builtin_memcpy_inline(&stack[rel], &regs[w->reg[0]], sizeof(uint16_t));
+                break;
             case op_strri:
                 __builtin_memcpy_inline(&stack[w->operand.imm], &regs[w->reg[0]], sizeof(uint32_t));
                 break;
             case op_strrr:
                 __builtin_memcpy_inline(&stack[regs[w->reg[1]]], &regs[w->reg[0]], sizeof(uint32_t));
+                break;
+            case op_strrir:
+                rel = regs[w->reg[1]] + w->operand.imm;
+                __builtin_memcpy_inline(&stack[rel], &regs[w->reg[0]], sizeof(uint32_t));
                 break;
 #pragma endregion
 #pragma region CMP
