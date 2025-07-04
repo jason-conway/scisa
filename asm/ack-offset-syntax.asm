@@ -15,8 +15,8 @@ l16:
     sub     r16, r4
 
 l17:
-    str     r5,  28(sp)
-    str     r4,  24(sp)
+    str     r5, 28(sp)
+    str     r4, 24(sp)
 
     call    exec
 
@@ -75,7 +75,7 @@ l7:
     ret
 
 l12:
-    sub     sp, 32
+    sub     sp,  32
     str     lr,  28(sp)
     str     r16, 24(sp)
     jmp     l11
