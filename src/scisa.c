@@ -905,6 +905,7 @@ static result_t execute(psw_t *program, arena_t arena)
                             regs[w->reg[0]] = 0;
                             break;
                         }
+                        // fallthrough
                     default:
                         regs[w->reg[0]] %= w->operand.imm;
                 }
@@ -918,6 +919,7 @@ static result_t execute(psw_t *program, arena_t arena)
                             regs[w->reg[0]] = 0;
                             break;
                         }
+                        // fallthrough
                     default:
                         regs[w->reg[0]] %= regs[w->reg[1]];
                 }
@@ -980,7 +982,7 @@ static result_t execute(psw_t *program, arena_t arena)
                 __builtin_memcpy_inline(&regs[w->reg[0]], &stack[regs[w->reg[1]]], sizeof(uint8_t));
                 break;
             case op_ldrbrir:
-                rel =regs[w->reg[1]] + w->operand.imm;
+                rel = regs[w->reg[1]] + w->operand.imm;
                 __builtin_memcpy_inline(&regs[w->reg[0]], &stack[rel], sizeof(uint8_t));
                 break;
             case op_ldrhri:
@@ -990,7 +992,7 @@ static result_t execute(psw_t *program, arena_t arena)
                 __builtin_memcpy_inline(&regs[w->reg[0]], &stack[regs[w->reg[1]]], sizeof(uint16_t));
                 break;
             case op_ldrhrir:
-                rel =regs[w->reg[1]] + w->operand.imm;
+                rel = regs[w->reg[1]] + w->operand.imm;
                 __builtin_memcpy_inline(&regs[w->reg[0]], &stack[rel], sizeof(uint16_t));
                 break;
             case op_ldrri:
@@ -1000,7 +1002,7 @@ static result_t execute(psw_t *program, arena_t arena)
                 __builtin_memcpy_inline(&regs[w->reg[0]], &stack[regs[w->reg[1]]], sizeof(uint32_t));
                 break;
             case op_ldrrir:
-                rel =regs[w->reg[1]] + w->operand.imm;
+                rel = regs[w->reg[1]] + w->operand.imm;
                 __builtin_memcpy_inline(&regs[w->reg[0]], &stack[rel], sizeof(uint32_t));
                 break;
 #pragma endregion
@@ -1124,10 +1126,10 @@ static result_t execute(psw_t *program, arena_t arena)
 static str_t os_loadstdin(arena_t *a)
 {
     str_t s = { 0 };
-    bool err = 0;
+    bool err = false;
 
     err |= fseek(stdin, 0, SEEK_END);
-    long len = ftell(stdin);
+    size_t len = ftell(stdin);
     err |= len < 1;
     err |= fseek(stdin, 0, SEEK_SET);
     if (err) {

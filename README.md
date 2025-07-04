@@ -1,4 +1,4 @@
-[<img align="left" src="./etc/scisa-small.png" width="300"/>](etc/scisa-small.png)
+[<img align="center" src="./etc/scisa.png"/>](etc/scisa.png)
 
 # `scisa`: Sweetened Condensed Instruction Set Architecture
 
@@ -81,11 +81,11 @@ Intermediate values (both dec and hex) can be signed with `-` and `+`
 Load and Store instructions support `reg, reg/imm/imm(reg)` syntax.
 
 ```asm
-[ld|st]r r16, sp
-[ld|st]r r16, 0x1000
-[ld|st]r r16, 4096
-[ld|st]r r16, 0x30(sp)
-[ld|st]r r16, 48(sp)
+[ldr|str] r16, sp
+[ldr|str] r16, 0x1000
+[ldr|str] r16, 4096
+[ldr|str] r16, 0x30(sp)
+[ldr|str] r16, 48(sp)
 ```
 
 ---
