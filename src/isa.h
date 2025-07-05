@@ -38,21 +38,9 @@
     lsrrr,   \
     asrri,   \
     asrrr,   \
-    ldrbri,  \
-    ldrbrr,  \
-    ldrbrir, \
-    ldrhri,  \
-    ldrhrr,  \
-    ldrhrir, \
     ldrri,   \
     ldrrr,   \
     ldrrir,  \
-    strbri,  \
-    strbrr,  \
-    strbrir, \
-    strhri,  \
-    strhrr,  \
-    strhrir, \
     strri,   \
     strrr,   \
     strrir,  \
@@ -97,11 +85,7 @@
     lsl,    \
     lsr,    \
     asr,    \
-    ldrb,   \
-    ldrh,   \
     ldr,    \
-    strb,   \
-    strh,   \
     str,    \
     cmp,    \
     jmp,    \
@@ -114,7 +98,6 @@
     call,   \
     msg,
 #pragma endregion
-
 
 #pragma region REGS
 #define REGISTER_LIST \
