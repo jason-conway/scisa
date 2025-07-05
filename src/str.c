@@ -157,6 +157,16 @@ str_t str_lower(str_t s)
     return s;
 }
 
+str_t str_upper(str_t s)
+{
+    for (int64_t i = 0; i < s.len; i++) {
+        if (is_letter(s.data[i])) {
+            s.data[i] = to_upper(s.data[i]);
+        }
+    }
+    return s;
+}
+
 bool is_letter(uint8_t c)
 {
     return is_upper(c) || is_lower(c);
