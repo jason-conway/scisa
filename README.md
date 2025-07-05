@@ -1,19 +1,25 @@
 [<img align="center" src="./etc/scisa.png"/>](etc/scisa.png)
 
+---
+
 # `scisa`: Sweetened Condensed Instruction Set Architecture
 
 ## SCISA VM
 
-General Purpose Registers
+### General Purpose Registers
+
 32 GPRs - r0 through r31
 
-Special Purpose Registers
+### Special Purpose Registers
+
 5 SPRs - pc, lr, sp, fp, cc
-pc - program counter
-lr - link register
-sp - stack pointer
-fp - frame pointer
-cc - flags
+
+- pc - program counter
+- lr - link register
+- sp - stack pointer
+- fp - frame pointer
+- cc - flags
+
 
 2MB stack, (0x200000 bytes)
 
@@ -49,20 +55,16 @@ cc - flags
 | JL       | label            | if CC < 0 then PC = &label      |
 | CALL     | label            | LR = PC; PC = &label            |
 | RET      |                  | PC = LR                         |
-| HLT      |                  | halt successfully               |
+| HALT     |                  | halt successfully               |
 
 ---
 
-| Mnemonic | Operands     | Operation                                           |
-| -------- | ------------ | --------------------------------------------------- |
-| PUSH     | reg          | push a register value onto the stack                |
-| POP      | reg          | pop a value from the stack into a register          |
-| LDRB     | reg, reg/imm | load byte from memory into destination register     |
-| LDRH     | reg, reg/imm | load halfword from memory into destination register |
-| LDR      | reg, reg/imm | load word from memory into destination register     |
-| STRB     | reg, reg/imm | store byte from source register into memory         |
-| STRH     | reg, reg/imm | store halfword from source register into memory     |
-| STR      | reg, reg/imm | store word from source register into memory         |
+| Mnemonic | Operands              | Operation                                       |
+| -------- | --------------------- | ----------------------------------------------- |
+| PUSH     | reg                   | push a register value onto the stack            |
+| POP      | reg                   | pop a value from the stack into a register      |
+| LDR      | reg, reg/imm/imm(reg) | load word from memory into destination register |
+| STR      | reg, reg/imm/imm(reg) | store word from source register into memory     |
 
 ## Syntax
 
@@ -70,7 +72,7 @@ All mnemonics can be uppercase or lowercase: ADD == add
 
 All registers can be uppercase or lowercase. R10 == r10
 
-Registers names cann NOT be specified with hex. R31 == r31 but R31 != r1f
+Registers names can NOT be specified with hex. R31 == r31 but R31 != r1f
 
 Immediate values can specified in decimal or hex.
 
@@ -89,6 +91,20 @@ Load and Store instructions support `reg, reg/imm/imm(reg)` syntax.
 ```
 
 ---
+
+`msg` accepts a variable number of comma-seperated arguments. Arguments can be
+any combination of single-quoted strings and registers.
+
+```asm
+msg     'ackermann(', r4, ', ', r5, ') = ', r6, '\n'
+```
+
+`msg` buffers up to 64 bytes before flushing to stdout. A `msg` can be flushed
+explicitly using a NUL byte.
+
+```asm
+msg     '\r', r4, '\t', r5, '\0'
+```
 
 ## TODO
 
