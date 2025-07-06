@@ -1,79 +1,5 @@
 #include "scisa.h"
 
-static bool full_write(int32_t fd, uint8_t *s, size_t len)
-{
-    for (size_t off = 0; off < len;) {
-        ptrdiff_t r = write(fd, &s[off], len - off);
-        if (r < 1) {
-            return false;
-        }
-        off += r;
-    }
-    return true;
-}
-
-static void flush_output(output_t *o)
-{
-    if (!o->err && o->len) {
-        o->err = !full_write(o->fd, o->data, o->len);
-        o->len = 0;
-    }
-}
-
-static void print_str(output_t *o, str_t s)
-{
-    uint8_t *c = &s.data[0];
-    uint8_t *end = &s.data[s.len];
-    while (c < end && !o->err) {
-        ptrdiff_t avail = o->cap - o->len;
-        uint8_t *dst = &o->data[o->len];
-
-        ptrdiff_t i = 0;
-        ptrdiff_t j = 0;
-
-        while (i < end - c && j < avail) {
-            uint8_t e = c[i];
-            if (e == '\\' && i + 1 < end - c) {
-                switch (c[i + 1]) {
-                    case 't':
-                        e = '\t';
-                        break;
-                    case 'n':
-                        e = '\n';
-                        break;
-                    case 'r':
-                        e = '\r';
-                        break;
-                    case '\\':
-                        e = '\\';
-                        break;
-                    case 'e':
-                        e = '\e';
-                        break;
-                    case '0':
-                        flush_output(o);
-                        i += 2;
-                        c += i;
-                        goto next;
-                    default:
-                        abort();
-                }
-                i++;
-            }
-            dst[j++] = e;
-            i++;
-        }
-
-        c += i;
-        o->len += j;
-        if (o->len == o->cap) {
-            flush_output(o);
-        }
-    next:;
-    }
-}
-
-
 static bool is_mnemonic(str_t s, mnemonic_t *m)
 {
     static const str_t names[] = {
@@ -87,6 +13,35 @@ static bool is_mnemonic(str_t s, mnemonic_t *m)
         }
     }
     return false;
+}
+
+static bool is_directive(str_t s, directive_t *d)
+{
+    static const str_t names[] = {
+        MAP(GEN_STR, DIRECTIVE_LIST)
+    };
+    s = str_lower(s);
+    for (size_t i = 0; i < countof(names); i++) {
+        if (str_equal(names[i], s)) {
+            *d = i + 1;
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool is_segment_dir(directive_t d, seg_t *seg)
+{
+    switch (d) {
+        case dir_data:
+            *seg = seg_data;
+            return true;
+        case dir_text:
+            *seg = seg_text;
+            return true;
+        default:
+            return false;
+    }
 }
 
 static bool str_reg(reg_t *r, str_t s)
@@ -138,6 +93,22 @@ static vaddr *upsert(labels_t **t, str_t label, arena_t *a)
     return &(*t)->addr;
 }
 
+static vaddr *upsert_data(labels_t **t, str_t label, arena_t *a)
+{
+    for (uint64_t h = str_hash(label); *t; h = h >> 62 | h << 2) {
+        if (str_equal((*t)->label, label)) {
+            return &(*t)->addr;
+        }
+        // set `t` to next child node
+        t = &(*t)->child[h >> 62];
+    }
+    if (!a) {
+        return NULL;
+    }
+    *t = alloc(a, labels_t, 1);
+    (*t)->label = label;
+    return &(*t)->addr;
+}
 
 static token_t lex(str_t s)
 {
@@ -245,6 +216,17 @@ static token_t lex(str_t s)
         return r;
     }
 
+    if (*c == '.') {
+        for (c++; c < end && is_identifier(*c); c++);
+        r.data = str_span(c, end);
+        r.token = str_span(&start[1], c);
+        if (!is_asmdir(r.token)) {
+            return r;
+        }
+        r.type = tok_directive;
+        return r;
+    }
+
     if (*c == '_' || is_letter(*c)) {
         for (c++; c < end && is_identifier(*c); c++);
         r.data = str_span(c, end);
@@ -254,6 +236,43 @@ static token_t lex(str_t s)
     }
 
     return r;
+}
+
+
+static data_t *parse_data_directive(arena_t *a, directive_t dir, str_t *src)
+{
+    data_t *n = alloc(a, data_t, 1);
+    token_t t = { .data = *src };
+    int32_t val = 0;
+
+    switch (dir) {
+        case dir_word:
+        case dir_byte:
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_integer:
+                    if (!str_i32(&val, t.token)) {
+                        return NULL;
+                    }
+                    n->val = val;
+                    break;
+                default:
+                    return NULL;
+            }
+            break;
+        default:
+            return NULL;
+    }
+
+    t = lex(t.data);
+    switch (t.type) {
+        case tok_eof:
+        case tok_newline:
+            *src = t.data;
+            return n;
+        default:
+            return NULL;
+    }
 }
 
 static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
@@ -436,6 +455,34 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     return NULL;
             }
             break;
+        case m_lda:
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_register:
+                    if (!str_reg(&reg, t.token)) {
+                        return NULL;
+                    }
+                    n->reg[0] = reg;
+                    break;
+                default:
+                    return NULL;
+            }
+            // omnomnom
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_comma:
+                    break;
+                default:
+                    return NULL;
+            }
+
+            t = lex(t.data);
+            if (t.type != tok_identifier) {
+                return NULL;
+            }
+            n->label = t.token;
+            n->op = op_ldarl;
+            break;
         case m_cmp:
             // First operand can be imm or reg
             t = lex(t.data);
@@ -561,12 +608,21 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
 
     token_t t = { .data = src };
 
-    vaddr addr = 0;
+    vaddr insn_addr = 0;
+    vaddr data_addr = 0;
+
+
     labels_t *table = NULL;
-    insn_t **tail = &r.head;
+    labels_t *data_table = NULL;
+
+    insn_t **insn_tail = &r.insn_head;
+    data_t **data_tail = &r.data_head;
+
+    seg_t section = seg_null;
 
     for (;;) {
         mnemonic_t m = m_null;
+        directive_t dir = dir_null;
         t = lex(t.data);
         switch (t.type) {
             case tok_error:
@@ -582,7 +638,7 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
                 r.lineno++;
                 break;
             case tok_eof:
-                for (insn_t *n = r.head; n; n = n->next) {
+                for (insn_t *n = r.insn_head; n; n = n->next) {
                     if (n->label.data) {
                         vaddr *addr = upsert(&table, n->label, NULL);
                         if (!addr) {
@@ -594,7 +650,6 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
                 }
                 r.ok = true;
                 return r;
-
             case tok_identifier:
                 if (is_mnemonic(t.token, &m)) {
                     insn_t *insn = parse_instruction(heap, m, &t.data);
@@ -602,9 +657,9 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
                         return r;
                     }
                     insn->lineno = r.lineno++;
-                    *tail = insn;
-                    tail = &(*tail)->next;
-                    addr++;
+                    *insn_tail = insn;
+                    insn_tail = &(*insn_tail)->next;
+                    insn_addr++;
                 }
                 else { // is label
                     str_t label = t.token;
@@ -612,9 +667,34 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
                     if (t.type != tok_colon) {
                         return r;
                     }
-                    *upsert(&table, label, &stack) = addr;
+                    if (section == seg_text) {
+                        *upsert(&table, label, &stack) = insn_addr;
+                    } else {
+                        *upsert(&table, label, &stack) = data_addr;
+                    }
                 }
                 break;
+            case tok_directive:
+                if (is_directive(t.token, &dir)) {
+                    // updates the current section if true
+                    if (is_segment_dir(dir, &section)) {
+                        break;
+                    }
+                    if (section == seg_text) {
+                        return r;
+                    }
+
+                    data_t *data = parse_data_directive(heap, dir, &t.data);
+                    if (!data) {
+                        return r;
+                    }
+                    data->lineno = r.lineno++;
+                    *data_tail = data;
+                    data_tail = &(*data_tail)->next;
+                    data_addr++;
+                    break;
+                }
+                return r;
         }
     }
 }
@@ -697,6 +777,9 @@ static psw_t *assemble(insn_t *head, arena_t *arena)
                 program[i].reg[0] = n->reg[0];
                 program[i].reg[1] = n->reg[1];
                 break;
+            case op_ldarl:
+                program[i].operand.addr = n->addr;
+                program[i].reg[0] = n->reg[0];
             case op_jmp:
             case op_jne:
             case op_je:
@@ -715,353 +798,6 @@ static psw_t *assemble(insn_t *head, arena_t *arena)
     }
 
     return program;
-}
-
-static result_t execute(psw_t *program, arena_t arena)
-{
-    result_t r = { 0 };
-    r.out.fd = STDOUT_FILENO;
-    r.out.cap = 1 << 6;
-    r.out.data = alloc(&arena, uint8_t, r.out.cap);
-
-    enum cfg { STACK_TOP = 1 << 21 };
-    uint8_t *stack = alloc(&arena, uint8_t, STACK_TOP);
-
-    int32_t regs[r_max] = { 0 };
-    regs[fp] = STACK_TOP;
-    regs[sp] = STACK_TOP;
-    regs[lr] = -1;
-    regs[cc] = 0;
-    regs[pc] = 0x0;
-
-    for (;; regs[pc]++) {
-        int32_t a = 0;
-        int32_t b = 0;
-        int32_t rel = 0;
-        psw_t *w = &program[regs[pc]];
-        switch (w->op) {
-#pragma region ABORT
-            case op_abort:
-                return r;
-#pragma endregion
-#pragma region INC
-            case op_incr:
-                regs[w->reg[0]] += (uint32_t)1;
-                break;
-#pragma endregion
-#pragma region DEC
-            case op_decr:
-                regs[w->reg[0]] -= (uint32_t)1;
-                break;
-#pragma endregion
-#pragma region NEG
-            case op_negr:
-                regs[w->reg[0]] = -regs[w->reg[0]];
-                break;
-#pragma endregion
-#pragma region PUSH
-            case op_pushr:
-                regs[sp] -= sizeof(uint32_t);
-                __builtin_memcpy(&stack[regs[sp]], &regs[w->reg[0]], sizeof(uint32_t));
-                break;
-#pragma endregion
-#pragma region POP
-            case op_popr:
-                __builtin_memcpy(&regs[w->reg[0]], &stack[regs[sp]], sizeof(uint32_t));
-                regs[sp] += sizeof(uint32_t);
-                break;
-#pragma endregion
-#pragma region MOV
-            case op_movri:
-                regs[w->reg[0]] = w->operand.imm;
-                break;
-            case op_movrr:
-                regs[w->reg[0]] = regs[w->reg[1]];
-                break;
-#pragma endregion
-#pragma region ADD
-            case op_addri:
-                regs[w->reg[0]] += (uint32_t)w->operand.imm;
-                break;
-            case op_addrr:
-                regs[w->reg[0]] += (uint32_t)regs[w->reg[1]];
-                break;
-#pragma endregion
-#pragma region SADD
-            case op_saddri:
-                regs[w->reg[0]] += w->operand.imm;
-                break;
-            case op_saddrr:
-                regs[w->reg[0]] += regs[w->reg[1]];
-                break;
-#pragma endregion
-#pragma region SUB
-            case op_subri:
-                regs[w->reg[0]] -= (uint32_t)w->operand.imm;
-                break;
-            case op_subrr:
-                regs[w->reg[0]] -= (uint32_t)regs[w->reg[1]];
-                break;
-#pragma endregion
-#pragma region MUL
-            case op_mulri:
-                regs[w->reg[0]] *= (uint32_t)w->operand.imm;
-                break;
-            case op_mulrr:
-                regs[w->reg[0]] *= (uint32_t)regs[w->reg[1]];
-                break;
-#pragma endregion
-#pragma region DIV
-            case op_divri:
-                switch (w->operand.imm) {
-                    case 0:
-                        return r;
-                    case -1:
-                        regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
-                        break;
-                    default:
-                        regs[w->reg[0]] /= (uint32_t)w->operand.imm;
-                }
-                break;
-            case op_divrr:
-                switch (regs[w->reg[1]]) {
-                    case 0:
-                        return r;
-                    case -1:
-                        regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
-                        break;
-                    default:
-                        regs[w->reg[0]] /= (uint32_t)regs[w->reg[1]];
-                }
-                break;
-#pragma endregion
-#pragma region SDIV
-            case op_sdivri:
-                switch (w->operand.imm) {
-                    case 0:
-                        return r;
-                    case -1:
-                        regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
-                        break;
-                    default:
-                        regs[w->reg[0]] /= w->operand.imm;
-                }
-                break;
-            case op_sdivrr:
-                switch (regs[w->reg[1]]) {
-                    case 0:
-                        return r;
-                    case -1:
-                        regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
-                        break;
-                    default:
-                        regs[w->reg[0]] /= regs[w->reg[1]];
-                }
-                break;
-#pragma endregion
-#pragma region MOD
-            case op_modri:
-                switch (w->operand.imm) {
-                    case 0:
-                        break;
-                    default:
-                        regs[w->reg[0]] %= (uint32_t)w->operand.imm;
-                }
-                break;
-            case op_modrr:
-                switch (regs[w->reg[1]]) {
-                    case 0:
-                        break;
-                    default:
-                        regs[w->reg[0]] %= (uint32_t)regs[w->reg[1]];
-                }
-                break;
-#pragma endregion
-#pragma region SMOD
-            case op_smodri:
-                switch (w->operand.imm) {
-                    case 0:
-                        break;
-                    case -1:
-                        if (regs[w->reg[0]] == INT32_MIN) {
-                            regs[w->reg[0]] = 0;
-                            break;
-                        }
-                        // fallthrough
-                    default:
-                        regs[w->reg[0]] %= w->operand.imm;
-                }
-                break;
-            case op_smodrr:
-                switch (regs[w->reg[1]]) {
-                    case 0:
-                        break;
-                    case -1:
-                        if (regs[w->reg[0]] == INT32_MIN) {
-                            regs[w->reg[0]] = 0;
-                            break;
-                        }
-                        // fallthrough
-                    default:
-                        regs[w->reg[0]] %= regs[w->reg[1]];
-                }
-                break;
-#pragma endregion
-#pragma region AND
-            case op_andri:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] & (uint32_t)w->operand.imm;
-                break;
-            case op_andrr:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] & (uint32_t)regs[w->reg[1]];
-                break;
-#pragma endregion
-#pragma region OR
-            case op_orri:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] | (uint32_t)w->operand.imm;
-                break;
-            case op_orrr:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] | (uint32_t)regs[w->reg[1]];
-                break;
-#pragma endregion
-#pragma region XOR
-            case op_xorri:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] ^ (uint32_t)w->operand.imm;
-                break;
-
-            case op_xorrr:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] ^ (uint32_t)regs[w->reg[1]];
-                break;
-#pragma endregion
-#pragma region LSL
-            case op_lslri:
-                regs[w->reg[0]] <<= ((uint32_t)w->operand.imm & 0x1f);
-                break;
-            case op_lslrr:
-                regs[w->reg[0]] <<= ((uint32_t)regs[w->reg[1]] & 0x1f);
-                break;
-#pragma endregion
-#pragma region LSR
-            case op_lsrri:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] >> ((uint32_t)w->operand.imm & 0x1f);
-                break;
-            case op_lsrrr:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] >> ((uint32_t)regs[w->reg[1]] & 0x1f);
-                break;
-#pragma endregion
-#pragma region ASR
-            case op_asrri:
-                regs[w->reg[0]] >>= ((uint32_t)w->operand.imm & 0x1f);
-                break;
-            case op_asrrr:
-                regs[w->reg[0]] >>= ((uint32_t)regs[w->reg[1]] & 0x1f);
-                break;
-#pragma endregion
-#pragma region LDR
-            case op_ldrri:
-                __builtin_memcpy(&regs[w->reg[0]], &stack[w->operand.imm], sizeof(uint32_t));
-                break;
-            case op_ldrrr:
-                __builtin_memcpy(&regs[w->reg[0]], &stack[regs[w->reg[1]]], sizeof(uint32_t));
-                break;
-            case op_ldrrir:
-                rel = regs[w->reg[1]] + w->operand.imm;
-                __builtin_memcpy(&regs[w->reg[0]], &stack[rel], sizeof(uint32_t));
-                break;
-#pragma endregion
-#pragma region STR
-            case op_strri:
-                __builtin_memcpy(&stack[w->operand.imm], &regs[w->reg[0]], sizeof(uint32_t));
-                break;
-            case op_strrr:
-                __builtin_memcpy(&stack[regs[w->reg[1]]], &regs[w->reg[0]], sizeof(uint32_t));
-                break;
-            case op_strrir:
-                rel = regs[w->reg[1]] + w->operand.imm;
-                __builtin_memcpy(&stack[rel], &regs[w->reg[0]], sizeof(uint32_t));
-                break;
-#pragma endregion
-#pragma region CMP
-            case op_cmpii:
-                return r;
-            case op_cmpir:
-                a = w->operand.imm;
-                b = regs[w->reg[1]];
-                regs[cc] = (a > b) - (a < b);
-                break;
-            case op_cmpri:
-                a = regs[w->reg[0]];
-                b = w->operand.imm;
-                regs[cc] = (a > b) - (a < b);
-                break;
-            case op_cmprr:
-                a = regs[w->reg[0]];
-                b = regs[w->reg[1]];
-                regs[cc] = (a > b) - (a < b);
-                break;
-#pragma endregion
-#pragma region JMP
-            case op_jmp:
-                regs[pc] = w->operand.addr - 1;
-                break;
-            case op_jne:
-                if (regs[cc]) {
-                    regs[pc] = w->operand.addr - 1;
-                }
-                break;
-            case op_je:
-                if (!regs[cc]) {
-                    regs[pc] = w->operand.addr - 1;
-                }
-                break;
-            case op_jge:
-                if (regs[cc] >= 0) {
-                    regs[pc] = w->operand.addr - 1;
-                }
-                break;
-            case op_jg:
-                if (regs[cc] > 0) {
-                    regs[pc] = w->operand.addr - 1;
-                }
-                break;
-            case op_jle:
-                if (regs[cc] <= 0) {
-                    regs[pc] = w->operand.addr - 1;
-                }
-                break;
-            case op_jl:
-                if (regs[cc] < 0) {
-                    regs[pc] = w->operand.addr - 1;
-                }
-                break;
-#pragma endregion
-#pragma region CALL
-            case op_call:
-                regs[lr] = regs[pc];
-                regs[pc] = w->operand.addr - 1;
-                break;
-#pragma endregion
-#pragma region RET
-            case op_ret:
-                if (regs[lr] < 0) {
-                    return r;
-                }
-                regs[pc] = regs[lr];
-                break;
-#pragma endregion
-#pragma region MSG
-            case op_msg:
-                for (msg_t *m = w->operand.head; m; m = m->next) {
-                    print_str(&r.out, m->string.data ? m->string : i32_str(regs[m->reg]));
-                }
-                break;
-#pragma endregion
-#pragma region HALT
-            case op_halt:
-                r.ok = true;
-                return r;
-#pragma endregion
-        }
-    }
 }
 
 
@@ -1107,7 +843,7 @@ static bool run(arena_t heap)
         return false;
     }
 
-    psw_t *program = assemble(ast.head, &heap);
+    psw_t *program = assemble(ast.insn_head, &heap);
     result_t result = execute(program, a);
     if (!result.ok) {
         print_str(&err, S("[error] execution aborted\n"));

@@ -10,15 +10,22 @@
 #include "isa.h"
 #include "std.h"
 #include "str.h"
+#include "io.h"
 
 #define countof(a)     (sizeof(a) / sizeof(*(a)))
 #define lengthof(s)    (countof(s) - 1)
 #define alloc(a, t, n) __alloc(a, sizeof(t), _Alignof(t), n)
 
-#define GEN_MNEMONIC_ID(m) m_##m
-#define GEN_OPCODE_ID(o)   op_##o
-#define GEN_STR(x)         E(STR(x))
+#define GEN_MNEMONIC_ID(m)  m_##m
+#define GEN_OPCODE_ID(o)    op_##o
+#define GEN_DIRECTIVE_ID(o) dir_##o
+#define GEN_STR(x)          E(STR(x))
 
+typedef enum seg_t {
+    seg_null,
+    seg_text,
+    seg_data,
+} seg_t;
 
 typedef enum opcode_t {
     MAP(GEN_OPCODE_ID, OPCODE_LIST)
@@ -33,6 +40,11 @@ typedef enum mnemonic_t {
     m_null,
     MAP(GEN_MNEMONIC_ID, MNEMONICS_LIST)
 } mnemonic_t;
+
+typedef enum directive_t {
+    dir_null,
+    MAP(GEN_DIRECTIVE_ID, DIRECTIVE_LIST)
+} directive_t;
 
 typedef uint32_t vaddr;
 
@@ -51,6 +63,7 @@ typedef struct token_t {
         tok_string,
         tok_register,
         tok_identifier,
+        tok_directive,
     } type;
     str_t data;
     str_t token;
@@ -61,6 +74,15 @@ struct msg_t {
     msg_t *next;
     str_t string;
     uint8_t reg;
+};
+
+typedef struct data_t data_t;
+struct data_t {
+    data_t *next;
+    str_t label;
+    vaddr addr;
+    int32_t val;
+    size_t lineno;
 };
 
 typedef struct insn_t insn_t;
@@ -76,7 +98,8 @@ struct insn_t {
 };
 
 typedef struct ast_t {
-    insn_t *head;
+    insn_t *insn_head;
+    data_t *data_head;
     size_t lineno;
     bool ok;
 } ast_t;
@@ -104,14 +127,6 @@ typedef struct psw_t {
     } operand;
 } psw_t;
 
-typedef struct output_t {
-    uint8_t *data;
-    ptrdiff_t len;
-    ptrdiff_t cap;
-    int32_t fd;
-    bool err;
-} output_t;
-
 typedef struct result_t {
     output_t out;
     bool ok;
@@ -121,3 +136,5 @@ typedef struct arena_t {
     uint8_t *start;
     uint8_t *end;
 } arena_t;
+
+result_t execute(psw_t *program, arena_t arena);
