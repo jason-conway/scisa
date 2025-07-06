@@ -44,6 +44,7 @@
     strri,   \
     strrr,   \
     strrir,  \
+    ldarl,   \
     cmpii,   \
     cmpir,   \
     cmpri,   \
@@ -87,6 +88,7 @@
     asr,    \
     ldr,    \
     str,    \
+    lda,    \
     cmp,    \
     jmp,    \
     jne,    \
@@ -138,4 +140,12 @@
     fp,     \
     sp,     \
     cc
+#pragma endregion
+
+#pragma region ASM DIRECTIVES
+#define DIRECTIVE_LIST \
+    text, \
+    data, \
+    word, \
+    byte
 #pragma endregion

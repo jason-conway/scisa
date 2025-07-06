@@ -57,6 +57,12 @@ bool is_letter(uint8_t c);
 
 bool is_register(str_t s);
 
+// bool is_section_dir(str_t s);
+
+// bool is_data_dir(str_t s);
+
+// bool is_asmdir(str_t s);
+
 bool is_identifier(uint8_t c);
 
 str_t str_trim(str_t s);
