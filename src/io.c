@@ -12,7 +12,7 @@ static bool full_write(int32_t fd, uint8_t *s, size_t len)
     return true;
 }
 
-static void flush_output(output_t *o)
+void flush_output(output_t *o)
 {
     if (!o->err && o->len) {
         o->err = !full_write(o->fd, o->data, o->len);
