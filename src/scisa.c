@@ -59,7 +59,7 @@ static bool str_reg(reg_t *r, str_t s)
     return false;
 }
 
-static void *__alloc(arena_t *a, size_t objsize, size_t align, size_t count)
+void *__alloc(arena_t *a, size_t objsize, size_t align, size_t count)
 {
     ptrdiff_t avail = a->end - a->start;
     ptrdiff_t padding = -(uintptr_t)a->start & (align - 1);
@@ -76,24 +76,7 @@ static void *__alloc(arena_t *a, size_t objsize, size_t align, size_t count)
     return r;
 }
 
-static vaddr *upsert(labels_t **t, str_t label, arena_t *a)
-{
-    for (uint64_t h = str_hash(label); *t; h = h >> 62 | h << 2) {
-        if (str_equal((*t)->label, label)) {
-            return &(*t)->addr;
-        }
-        // set `t` to next child node
-        t = &(*t)->child[h >> 62];
-    }
-    if (!a) {
-        return NULL;
-    }
-    *t = alloc(a, labels_t, 1);
-    (*t)->label = label;
-    return &(*t)->addr;
-}
-
-static vaddr *upsert_data(labels_t **t, str_t label, arena_t *a)
+static uint64_t *upsert(labels_t **t, str_t label, arena_t *a)
 {
     for (uint64_t h = str_hash(label); *t; h = h >> 62 | h << 2) {
         if (str_equal((*t)->label, label)) {
@@ -206,6 +189,7 @@ static token_t lex(str_t s)
         r.data = str_span(c, end);
         r.token = str_span(start, c);
         r.type = tok_integer;
+        return r;
     }
 
     if (is_digit(*c)) {
@@ -220,9 +204,6 @@ static token_t lex(str_t s)
         for (c++; c < end && is_identifier(*c); c++);
         r.data = str_span(c, end);
         r.token = str_span(&start[1], c);
-        if (!is_asmdir(r.token)) {
-            return r;
-        }
         r.type = tok_directive;
         return r;
     }
@@ -239,26 +220,34 @@ static token_t lex(str_t s)
 }
 
 
-static data_t *parse_data_directive(arena_t *a, directive_t dir, str_t *src)
+static data_t *parse_directive(arena_t *a, directive_t dir, str_t *src)
 {
-    data_t *n = alloc(a, data_t, 1);
     token_t t = { .data = *src };
     int32_t val = 0;
+    if (dir != dir_word && dir != dir_byte) {
+        return NULL;
+    }
 
-    switch (dir) {
-        case dir_word:
-        case dir_byte:
-            t = lex(t.data);
-            switch (t.type) {
-                case tok_integer:
-                    if (!str_i32(&val, t.token)) {
-                        return NULL;
-                    }
-                    n->val = val;
-                    break;
-                default:
-                    return NULL;
+    t = lex(t.data);
+    switch (t.type) {
+        case tok_integer:
+            if (!str_i32(&val, t.token)) {
+                return NULL;
             }
+            break;
+        default:
+            return NULL;
+    }
+
+    data_t *n = alloc(a, data_t, 1);
+    switch (dir) {
+        case dir_byte:
+            n->val = (uint8_t)val;
+            n->sz = 1;
+            break;
+        case dir_word:
+            n->val = (uint32_t)val;
+            n->sz = 4;
             break;
         default:
             return NULL;
@@ -371,6 +360,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     return NULL;
             }
             break;
+#pragma region m_ldr m_str
         case m_ldr:
         case m_str:
             n->op = op_ldrri + 3 * (m - m_ldr);
@@ -455,7 +445,9 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     return NULL;
             }
             break;
-        case m_lda:
+#pragma endregion
+#pragma region m_lea
+        case m_lea:
             t = lex(t.data);
             switch (t.type) {
                 case tok_register:
@@ -476,13 +468,55 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     return NULL;
             }
 
+            // now either label or an immediate
             t = lex(t.data);
-            if (t.type != tok_identifier) {
-                return NULL;
+            switch (t.type) {
+                case tok_identifier:
+                    n->op = op_learl;
+                    // if just label, we done
+                    n->label = t.token;
+                    break;
+
+                case tok_integer:
+                    n->op = op_learil;
+                    // grab value
+                    if (!str_i32(&imm, t.token)) {
+                        return NULL;
+                    }
+                    n->imm[1] = imm;
+                    // invalid syntax if next token isn't lparen
+                    t = lex(t.data);
+                    switch (t.type) {
+                        case tok_lparen:
+                            break;
+                        default:
+                            return NULL;
+                    }
+
+                    // error if not a token
+                    t = lex(t.data);
+                    switch (t.type) {
+                        case tok_identifier:
+                            n->label = t.token;
+                            break;
+                        default:
+                            return NULL;
+                    }
+                    // error if not rparen
+                    t = lex(t.data);
+                    switch (t.type) {
+                        case tok_rparen:
+                            break;
+                        default:
+                            return NULL;
+                    }
+                    break;
+                default:
+                    return NULL;
             }
-            n->label = t.token;
-            n->op = op_ldarl;
             break;
+#pragma endregion
+#pragma region m_cmp
         case m_cmp:
             // First operand can be imm or reg
             t = lex(t.data);
@@ -530,10 +564,8 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                 default:
                     return NULL;
             }
-            if (n->op == op_cmpii) {
-                return NULL;
-            }
             break;
+#pragma endregion
         case m_jmp:
         case m_jne:
         case m_je:
@@ -602,23 +634,29 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
     }
 }
 
+static vaddr translate(uint64_t addr)
+{
+    if (addr > 0xffffffff) {
+        return (vaddr)(addr >> 0x20);
+    }
+    return (vaddr)addr;
+}
+
 static ast_t parse(str_t src, arena_t *heap, arena_t stack)
 {
     ast_t r = { .lineno = 1, };
 
     token_t t = { .data = src };
 
-    vaddr insn_addr = 0;
-    vaddr data_addr = 0;
-
+    uint64_t insn_addr = 0;
+    uint64_t data_addr = 0;
 
     labels_t *table = NULL;
-    labels_t *data_table = NULL;
 
-    insn_t **insn_tail = &r.insn_head;
-    data_t **data_tail = &r.data_head;
+    insn_t **insn_tail = &r.head.insn;
+    data_t **data_tail = &r.head.data;
 
-    seg_t section = seg_null;
+    seg_t seg = seg_null;
 
     for (;;) {
         mnemonic_t m = m_null;
@@ -638,14 +676,14 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
                 r.lineno++;
                 break;
             case tok_eof:
-                for (insn_t *n = r.insn_head; n; n = n->next) {
+                for (insn_t *n = r.head.insn; n; n = n->next) {
                     if (n->label.data) {
-                        vaddr *addr = upsert(&table, n->label, NULL);
+                        uint64_t *addr = upsert(&table, n->label, NULL);
                         if (!addr) {
                             r.lineno = n->lineno;
                             return r;
                         }
-                        n->addr = *addr;
+                        n->addr = translate(*addr);
                     }
                 }
                 r.ok = true;
@@ -667,31 +705,29 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
                     if (t.type != tok_colon) {
                         return r;
                     }
-                    if (section == seg_text) {
-                        *upsert(&table, label, &stack) = insn_addr;
-                    } else {
-                        *upsert(&table, label, &stack) = data_addr;
-                    }
+
+                    uint64_t addr = (seg == seg_text) ? text_label(insn_addr) : data_label(data_addr);
+                    *upsert(&table, label, &stack) = addr;
                 }
                 break;
             case tok_directive:
                 if (is_directive(t.token, &dir)) {
                     // updates the current section if true
-                    if (is_segment_dir(dir, &section)) {
+                    if (is_segment_dir(dir, &seg)) {
                         break;
                     }
-                    if (section == seg_text) {
+                    if (seg == seg_text) {
                         return r;
                     }
 
-                    data_t *data = parse_data_directive(heap, dir, &t.data);
+                    data_t *data = parse_directive(heap, dir, &t.data);
                     if (!data) {
                         return r;
                     }
                     data->lineno = r.lineno++;
                     *data_tail = data;
                     data_tail = &(*data_tail)->next;
-                    data_addr++;
+                    data_addr += data->sz;
                     break;
                 }
                 return r;
@@ -699,22 +735,34 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
     }
 }
 
-static psw_t *assemble(insn_t *head, arena_t *arena)
+static scoff_t assemble(ast_t ast, arena_t *arena)
 {
-    ptrdiff_t len = 0;
-    for (insn_t *n = head; n; n = n->next) {
-        len++;
+    memory_region_t data = { 0 };
+    for (data_t *d = ast.head.data; d; d = d->next) {
+        data.size += d->sz;
+    }
+    data.addr = alloc(arena, uint8_t, data.size);
+
+    size_t offset = 0;
+    for (data_t *d = ast.head.data; d; d = d->next) {
+        __builtin_memcpy(&data.addr[offset], &d->val, d->sz);
+        offset += d->sz;
     }
 
-    psw_t *program = alloc(arena, psw_t, len + 1);
+    size_t exec_size = 0;
+    for (insn_t *n = ast.head.insn; n; n = n->next) {
+        exec_size++;
+    }
+    psw_t *text = alloc(arena, psw_t, exec_size + 1);
+
+    scoff_t obj = { 0 };
 
     size_t i = 0;
-    for (insn_t *n = head; n; n = n->next) {
-        program[i].op = (uint8_t)n->op;
+    for (insn_t *n = ast.head.insn; n; n = n->next) {
+        text[i].op = (uint8_t)n->op;
         switch (n->op) {
             case op_abort:
-            case op_cmpii:
-                return NULL;
+                return obj;
             case op_ret:
             case op_halt:
                 break;
@@ -723,7 +771,7 @@ static psw_t *assemble(insn_t *head, arena_t *arena)
             case op_negr:
             case op_pushr:
             case op_popr:
-                program[i].reg[0] = n->reg[0];
+                text[i].reg[0] = n->reg[0];
                 break;
             case op_movri:
             case op_addri:
@@ -743,8 +791,8 @@ static psw_t *assemble(insn_t *head, arena_t *arena)
             case op_ldrri:
             case op_strri:
             case op_cmpri:
-                program[i].reg[0] = n->reg[0];
-                program[i].operand.imm = n->imm[1];
+                text[i].reg[0] = n->reg[0];
+                text[i].operand.imm[0] = n->imm[1];
                 break;
             case op_movrr:
             case op_addrr:
@@ -764,22 +812,32 @@ static psw_t *assemble(insn_t *head, arena_t *arena)
             case op_ldrrr:
             case op_strrr:
             case op_cmprr:
-                program[i].reg[0] = n->reg[0];
-                program[i].reg[1] = n->reg[1];
+                text[i].reg[0] = n->reg[0];
+                text[i].reg[1] = n->reg[1];
                 break;
             case op_cmpir:
-                program[i].operand.imm = n->imm[0];
-                program[i].reg[1] = n->reg[1];
+                text[i].operand.imm[0] = n->imm[0];
+                text[i].reg[1] = n->reg[1];
+                break;
+            case op_cmpii:
+                text[i].operand.imm[0] = n->imm[0];
+                text[i].operand.imm[1] = n->imm[1];
                 break;
             case op_ldrrir:
             case op_strrir:
-                program[i].operand.imm = n->imm[1];
-                program[i].reg[0] = n->reg[0];
-                program[i].reg[1] = n->reg[1];
+                text[i].operand.imm[0] = n->imm[1];
+                text[i].reg[0] = n->reg[0];
+                text[i].reg[1] = n->reg[1];
                 break;
-            case op_ldarl:
-                program[i].operand.addr = n->addr;
-                program[i].reg[0] = n->reg[0];
+            case op_learil:
+                text[i].reg[0] = n->reg[0];
+                text->operand.imm[0] = n->imm[1];
+                text->operand.addr = n->addr;
+                break;
+            case op_learl:
+                text[i].reg[0] = n->reg[0];
+                text[i].operand.addr = n->addr;
+                break;
             case op_jmp:
             case op_jne:
             case op_je:
@@ -788,16 +846,19 @@ static psw_t *assemble(insn_t *head, arena_t *arena)
             case op_jle:
             case op_jl:
             case op_call:
-                program[i].operand.addr = n->addr;
+                text[i].operand.addr = n->addr;
                 break;
             case op_msg:
-                program[i].operand.head = n->head;
+                text[i].operand.head = n->head;
                 break;
         }
         i++;
     }
 
-    return program;
+    obj.psw = text;
+    obj.data = data;
+    obj.ok = true;
+    return obj;
 }
 
 
@@ -843,7 +904,13 @@ static bool run(arena_t heap)
         return false;
     }
 
-    psw_t *program = assemble(ast.insn_head, &heap);
+    scoff_t program = assemble(ast, &heap);
+    if (!program.ok) {
+        print_str(&err, S("[error] assembly aborted\n"));
+        flush_output(&err);
+        return false;
+    }
+
     result_t result = execute(program, a);
     if (!result.ok) {
         print_str(&err, S("[error] execution aborted\n"));

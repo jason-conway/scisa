@@ -44,7 +44,8 @@
     strri,   \
     strrr,   \
     strrir,  \
-    ldarl,   \
+    learl,   \
+    learil,  \
     cmpii,   \
     cmpir,   \
     cmpri,   \
@@ -88,7 +89,7 @@
     asr,    \
     ldr,    \
     str,    \
-    lda,    \
+    lea,    \
     cmp,    \
     jmp,    \
     jne,    \

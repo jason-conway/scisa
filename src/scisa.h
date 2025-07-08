@@ -21,6 +21,16 @@
 #define GEN_DIRECTIVE_ID(o) dir_##o
 #define GEN_STR(x)          E(STR(x))
 
+#define STACK_SIZE (1u << 21)
+#define STACK_MAX (0x7fffffff)
+#define STACK_MIN (STACK_MAX - STACK_SIZE)
+
+#define DATA_START  (0x10000000)
+#define DATA_END  (0x1fffffff)
+
+#define text_label(x) ((uint64_t)x << 0x00)
+#define data_label(x) ((uint64_t)(DATA_START + x) << 0x20)
+
 typedef enum seg_t {
     seg_null,
     seg_text,
@@ -47,6 +57,7 @@ typedef enum directive_t {
 } directive_t;
 
 typedef uint32_t vaddr;
+
 
 typedef enum tok_t tok_t;
 
@@ -79,10 +90,9 @@ struct msg_t {
 typedef struct data_t data_t;
 struct data_t {
     data_t *next;
-    str_t label;
-    vaddr addr;
-    int32_t val;
     size_t lineno;
+    uint32_t val;
+    uint8_t sz;
 };
 
 typedef struct insn_t insn_t;
@@ -98,8 +108,10 @@ struct insn_t {
 };
 
 typedef struct ast_t {
-    insn_t *insn_head;
-    data_t *data_head;
+    struct seg_heads_t {
+        insn_t *insn;
+        data_t *data;
+    } head;
     size_t lineno;
     bool ok;
 } ast_t;
@@ -108,24 +120,32 @@ typedef struct labels_t labels_t;
 struct labels_t {
     labels_t *child[4];
     str_t label;
-    vaddr addr;
+    uint64_t addr;
 };
-
-typedef struct insnresult_t {
-    str_t data;
-    insn_t *insn;
-} insnresult_t;
 
 // program status word
 typedef struct psw_t {
     uint8_t op;
     uint8_t reg[2];
-    union operand_t {
-        int32_t imm;
+    struct operand_t {
+        int32_t imm[2];
         vaddr addr;
         msg_t *head;
     } operand;
 } psw_t;
+
+typedef struct memory_region_t {
+    uint8_t *addr;
+    uint32_t size;
+} memory_region_t;
+
+// sweetened condensed object file format
+typedef struct scoff_t {
+    psw_t *psw;
+    memory_region_t data;
+    memory_region_t stack;
+    bool ok;
+} scoff_t;
 
 typedef struct result_t {
     output_t out;
@@ -137,4 +157,6 @@ typedef struct arena_t {
     uint8_t *end;
 } arena_t;
 
-result_t execute(psw_t *program, arena_t arena);
+void *__alloc(arena_t *a, size_t objsize, size_t align, size_t count);
+result_t execute(scoff_t obj, arena_t arena);
+

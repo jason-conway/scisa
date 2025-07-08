@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "str.h"
 
@@ -17,3 +18,4 @@ typedef struct output_t {
 } output_t;
 
 void print_str(output_t *o, str_t s);
+void flush_output(output_t *o);

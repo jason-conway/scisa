@@ -177,23 +177,6 @@ bool is_identifier(uint8_t c)
     return c == '_' || is_letter(c) || is_digit(c);
 }
 
-// bool is_section_dir(str_t s)
-// {
-//     s = str_lower(s);
-//     return (str_equal(s, S("data")) || str_equal(s, S("text")));
-// }
-
-// bool is_data_dir(str_t s)
-// {
-//     s = str_lower(s);
-//     if (str_equal(s, S("word")) || str_equal(s, S("byte")));
-// }
-
-// bool is_asmdir(str_t s)
-// {
-//     return is_section_dir(s) || is_data_dir(s);
-// }
-
 bool is_register(str_t s)
 {
     const int64_t len = s.len;
