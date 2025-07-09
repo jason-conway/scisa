@@ -76,7 +76,7 @@ void *__alloc(arena_t *a, size_t objsize, size_t align, size_t count)
     return r;
 }
 
-static uint64_t *upsert(labels_t **t, str_t label, arena_t *a)
+static sym_addr_t *sym_upsert(labels_t **t, str_t label, arena_t *a)
 {
     for (uint64_t h = str_hash(label); *t; h = h >> 62 | h << 2) {
         if (str_equal((*t)->label, label)) {
@@ -634,12 +634,22 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
     }
 }
 
-static vaddr translate(uint64_t addr)
+static vaddr label_addr(sym_addr_t addr)
 {
-    if (addr > 0xffffffff) {
+    if (addr > UINT32_MAX) {
         return (vaddr)(addr >> 0x20);
     }
     return (vaddr)addr;
+}
+
+static sym_addr_t symbol_addr(seg_t segment, seg_addrs_t addr)
+{
+    const sym_addr_t addrs[] = {
+        (uint64_t)-1,
+        (uint64_t)(addr.insn + 0x00000000) << 0x00,
+        (uint64_t)(addr.data + 0x10000000) << 0x20
+    };
+    return addrs[segment];
 }
 
 static ast_t parse(str_t src, arena_t *heap, arena_t stack)
@@ -648,13 +658,16 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
 
     token_t t = { .data = src };
 
-    uint64_t insn_addr = 0;
-    uint64_t data_addr = 0;
+    seg_addrs_t addr = { 0 };
+    // uint64_t insn_addr = 0;
+    // uint64_t data_addr = 0;
 
     labels_t *table = NULL;
 
-    insn_t **insn_tail = &r.head.insn;
-    data_t **data_tail = &r.head.data;
+    seg_tails_t tail = {
+        .insn = &r.head.insn,
+        .data = &r.head.data
+    };
 
     seg_t seg = seg_null;
 
@@ -678,12 +691,12 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
             case tok_eof:
                 for (insn_t *n = r.head.insn; n; n = n->next) {
                     if (n->label.data) {
-                        uint64_t *addr = upsert(&table, n->label, NULL);
-                        if (!addr) {
+                        sym_addr_t *sym_addr = sym_upsert(&table, n->label, NULL);
+                        if (!sym_addr) {
                             r.lineno = n->lineno;
                             return r;
                         }
-                        n->addr = translate(*addr);
+                        n->addr = label_addr(*sym_addr);
                     }
                 }
                 r.ok = true;
@@ -695,19 +708,23 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
                         return r;
                     }
                     insn->lineno = r.lineno++;
-                    *insn_tail = insn;
-                    insn_tail = &(*insn_tail)->next;
-                    insn_addr++;
+                    *tail.insn = insn;
+                    tail.insn = &(*tail.insn)->next;
+                    // *insn_tail = insn;
+                    // insn_tail = &(*insn_tail)->next;
+                    addr.insn++;
                 }
                 else { // is label
                     str_t label = t.token;
                     t = lex(t.data);
-                    if (t.type != tok_colon) {
-                        return r;
+                    switch (t.type) {
+                        case tok_colon:
+                            break;
+                        default:
+                            return r;
                     }
-
-                    uint64_t addr = (seg == seg_text) ? text_label(insn_addr) : data_label(data_addr);
-                    *upsert(&table, label, &stack) = addr;
+                    sym_addr_t sym = symbol_addr(seg, addr);
+                    *sym_upsert(&table, label, &stack) = sym;
                 }
                 break;
             case tok_directive:
@@ -725,9 +742,9 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
                         return r;
                     }
                     data->lineno = r.lineno++;
-                    *data_tail = data;
-                    data_tail = &(*data_tail)->next;
-                    data_addr += data->sz;
+                    *tail.data = data;
+                    tail.data = &(*tail.data)->next;
+                    addr.data += data->sz;
                     break;
                 }
                 return r;
@@ -737,15 +754,17 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
 
 static scoff_t assemble(ast_t ast, arena_t *arena)
 {
+    // fprintf(stderr, "[assemble]\n");
     memory_region_t data = { 0 };
     for (data_t *d = ast.head.data; d; d = d->next) {
         data.size += d->sz;
     }
-    data.addr = alloc(arena, uint8_t, data.size);
+    // fprintf(stderr, "    [data] allocating %u bytes for segment\n", data.size);
+    data.base = alloc(arena, uint8_t, data.size);
 
     size_t offset = 0;
     for (data_t *d = ast.head.data; d; d = d->next) {
-        __builtin_memcpy(&data.addr[offset], &d->val, d->sz);
+        __builtin_memcpy(&data.base[offset], &d->val, d->sz);
         offset += d->sz;
     }
 
@@ -753,13 +772,15 @@ static scoff_t assemble(ast_t ast, arena_t *arena)
     for (insn_t *n = ast.head.insn; n; n = n->next) {
         exec_size++;
     }
-    psw_t *text = alloc(arena, psw_t, exec_size + 1);
+    // fprintf(stderr, "    [text] allocating %u bytes for segment\n", data.size);
+
+    scir_t *code = alloc(arena, scir_t, exec_size + 1);
 
     scoff_t obj = { 0 };
 
     size_t i = 0;
     for (insn_t *n = ast.head.insn; n; n = n->next) {
-        text[i].op = (uint8_t)n->op;
+        code[i].op = (uint8_t)n->op;
         switch (n->op) {
             case op_abort:
                 return obj;
@@ -771,7 +792,7 @@ static scoff_t assemble(ast_t ast, arena_t *arena)
             case op_negr:
             case op_pushr:
             case op_popr:
-                text[i].reg[0] = n->reg[0];
+                code[i].reg[0] = n->reg[0];
                 break;
             case op_movri:
             case op_addri:
@@ -791,8 +812,8 @@ static scoff_t assemble(ast_t ast, arena_t *arena)
             case op_ldrri:
             case op_strri:
             case op_cmpri:
-                text[i].reg[0] = n->reg[0];
-                text[i].operand.imm[0] = n->imm[1];
+                code[i].reg[0] = n->reg[0];
+                code[i].operand.imm[0] = n->imm[1];
                 break;
             case op_movrr:
             case op_addrr:
@@ -812,31 +833,31 @@ static scoff_t assemble(ast_t ast, arena_t *arena)
             case op_ldrrr:
             case op_strrr:
             case op_cmprr:
-                text[i].reg[0] = n->reg[0];
-                text[i].reg[1] = n->reg[1];
+                code[i].reg[0] = n->reg[0];
+                code[i].reg[1] = n->reg[1];
                 break;
             case op_cmpir:
-                text[i].operand.imm[0] = n->imm[0];
-                text[i].reg[1] = n->reg[1];
+                code[i].operand.imm[0] = n->imm[0];
+                code[i].reg[1] = n->reg[1];
                 break;
             case op_cmpii:
-                text[i].operand.imm[0] = n->imm[0];
-                text[i].operand.imm[1] = n->imm[1];
+                code[i].operand.imm[0] = n->imm[0];
+                code[i].operand.imm[1] = n->imm[1];
                 break;
             case op_ldrrir:
             case op_strrir:
-                text[i].operand.imm[0] = n->imm[1];
-                text[i].reg[0] = n->reg[0];
-                text[i].reg[1] = n->reg[1];
+                code[i].operand.imm[0] = n->imm[1];
+                code[i].reg[0] = n->reg[0];
+                code[i].reg[1] = n->reg[1];
                 break;
             case op_learil:
-                text[i].reg[0] = n->reg[0];
-                text->operand.imm[0] = n->imm[1];
-                text->operand.addr = n->addr;
+                code[i].reg[0] = n->reg[0];
+                code[i].operand.imm[0] = n->imm[1];
+                code[i].operand.addr = n->addr;
                 break;
             case op_learl:
-                text[i].reg[0] = n->reg[0];
-                text[i].operand.addr = n->addr;
+                code[i].reg[0] = n->reg[0];
+                code[i].operand.addr = n->addr;
                 break;
             case op_jmp:
             case op_jne:
@@ -846,16 +867,16 @@ static scoff_t assemble(ast_t ast, arena_t *arena)
             case op_jle:
             case op_jl:
             case op_call:
-                text[i].operand.addr = n->addr;
+                code[i].operand.addr = n->addr;
                 break;
             case op_msg:
-                text[i].operand.head = n->head;
+                code[i].operand.head = n->head;
                 break;
         }
         i++;
     }
 
-    obj.psw = text;
+    obj.code = code;
     obj.data = data;
     obj.ok = true;
     return obj;

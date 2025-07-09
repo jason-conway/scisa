@@ -1,3 +1,4 @@
+.text
 main:
     call  render
     halt

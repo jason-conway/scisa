@@ -1,17 +1,19 @@
 #include "scisa.h"
 
-static void *mmu(scoff_t *obj, vaddr addr)
+enum cfg { 
+    STACK_HIGH = 0x7fffffff,
+    STACK_SIZE = 1u << 21,
+    STACK_LOW = STACK_HIGH - STACK_SIZE,
+    DATA_LOW = 0x10000000,
+};
+
+static void *map_addr(scoff_t *obj, vaddr addr)
 {
-    // map STACK_MIN -> STACK_MAX to 0 -> STACK_SIZE
-    const size_t stack_top = STACK_MAX - obj->stack.size;
-    if (addr >= stack_top && addr <= STACK_MAX) {
-        addr -= stack_top;
-        return &obj->stack.addr[addr];
+    if ((vaddr)(addr - STACK_LOW) < obj->stack.size) {
+        return &obj->stack.base[addr - STACK_LOW];
     }
-    else if (addr >= DATA_START && addr <= DATA_START + obj->data.size) {
-        // map 0 to DATA_SIZE to DATA_START -> DATA_END
-        addr -= DATA_START;
-        return &obj->data.addr[addr];
+    if ((vaddr)(addr - DATA_LOW) < obj->data.size) {
+        return &obj->data.base[addr - DATA_LOW];
     }
     abort();
 }
@@ -23,23 +25,23 @@ result_t execute(scoff_t obj, arena_t arena)
     r.out.cap = 1 << 6;
     r.out.data = alloc(&arena, uint8_t, r.out.cap);
 
-    enum cfg { STACK_TOP = 1 << 21 };
-    obj.stack.addr = alloc(&arena, uint8_t, STACK_TOP);
-    obj.stack.size = STACK_TOP;
+    obj.stack.base = alloc(&arena, uint8_t, STACK_SIZE);
+    obj.stack.size = STACK_SIZE;
+
 
     int32_t regs[r_max] = { 0 };
-    regs[fp] = STACK_MAX;
-    regs[sp] = STACK_MAX;
+    regs[fp] = STACK_HIGH;
+    regs[sp] = STACK_HIGH;
     regs[lr] = -1;
     regs[cc] = 0;
     regs[pc] = 0x0;
-    
 
+    scir_t *insns = obj.code;
     for (;; regs[pc]++) {
         int32_t a = 0;
         int32_t b = 0;
         int32_t rel = 0;
-        psw_t *w = &obj.psw[regs[pc]];
+        scir_t *w = &insns[regs[pc]];
         switch (w->op) {
 #pragma region ABORT
             case op_abort:
@@ -63,12 +65,12 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma region PUSH
             case op_pushr:
                 regs[sp] -= sizeof(uint32_t);
-                __builtin_memcpy(mmu(&obj, regs[sp]), &regs[w->reg[0]], sizeof(uint32_t));
+                __builtin_memcpy(map_addr(&obj, regs[sp]), &regs[w->reg[0]], sizeof(uint32_t));
                 break;
 #pragma endregion
 #pragma region POP
             case op_popr:
-                __builtin_memcpy(&regs[w->reg[0]], mmu(&obj, regs[sp]), sizeof(uint32_t));
+                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, regs[sp]), sizeof(uint32_t));
                 regs[sp] += sizeof(uint32_t);
                 break;
 #pragma endregion
@@ -259,32 +261,32 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region LDR
             case op_ldrri:
-                __builtin_memcpy(&regs[w->reg[0]], mmu(&obj, regs[w->operand.imm[0]]), sizeof(uint32_t));
+                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, regs[w->operand.imm[0]]), sizeof(uint32_t));
                 break;
             case op_ldrrr:
-                __builtin_memcpy(&regs[w->reg[0]], mmu(&obj, regs[w->reg[1]]), sizeof(uint32_t));
+                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, regs[w->reg[1]]), sizeof(uint32_t));
                 break;
             case op_ldrrir:
                 rel = regs[w->reg[1]] + w->operand.imm[0];
-                __builtin_memcpy(&regs[w->reg[0]], mmu(&obj, rel), sizeof(uint32_t));
+                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, rel), sizeof(uint32_t));
                 break;
 #pragma endregion
 #pragma region STR
             case op_strri:
-                __builtin_memcpy(mmu(&obj, w->operand.imm[0]), &regs[w->reg[0]], sizeof(uint32_t));
+                __builtin_memcpy(map_addr(&obj, w->operand.imm[0]), &regs[w->reg[0]], sizeof(uint32_t));
                 break;
             case op_strrr:
-                __builtin_memcpy(mmu(&obj, regs[w->reg[1]]), &regs[w->reg[0]], sizeof(uint32_t));
+                __builtin_memcpy(map_addr(&obj, regs[w->reg[1]]), &regs[w->reg[0]], sizeof(uint32_t));
                 break;
             case op_strrir:
                 rel = regs[w->reg[1]] + w->operand.imm[0];
-                __builtin_memcpy(mmu(&obj, rel), &regs[w->reg[0]], sizeof(uint32_t));
+                __builtin_memcpy(map_addr(&obj, rel), &regs[w->reg[0]], sizeof(uint32_t));
                 break;
 #pragma endregion
 #pragma region CMP
             case op_cmpii:
                 a = w->operand.imm[0];
-                a = w->operand.imm[1];
+                b = w->operand.imm[1];
                 regs[cc] = (a > b) - (a < b);
                 break;
             case op_cmpir:
@@ -305,6 +307,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region LEA
             case op_learil:
+                // fprintf(stderr, "[execute] reg: %d addr: %d imm: %d\n", w->reg[0], w->operand.addr, w->operand.imm[0]);
                 regs[w->reg[0]] = w->operand.addr + w->operand.imm[0];
                 break;
             case op_learl:
