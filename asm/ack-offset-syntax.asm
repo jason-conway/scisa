@@ -1,3 +1,4 @@
+.text
 main:
     sub     sp, 48
     mov     r4, r0

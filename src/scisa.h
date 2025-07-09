@@ -21,16 +21,6 @@
 #define GEN_DIRECTIVE_ID(o) dir_##o
 #define GEN_STR(x)          E(STR(x))
 
-#define STACK_SIZE (1u << 21)
-#define STACK_MAX (0x7fffffff)
-#define STACK_MIN (STACK_MAX - STACK_SIZE)
-
-#define DATA_START  (0x10000000)
-#define DATA_END  (0x1fffffff)
-
-#define text_label(x) ((uint64_t)x << 0x00)
-#define data_label(x) ((uint64_t)(DATA_START + x) << 0x20)
-
 typedef enum seg_t {
     seg_null,
     seg_text,
@@ -58,6 +48,7 @@ typedef enum directive_t {
 
 typedef uint32_t vaddr;
 
+typedef uint64_t sym_addr_t;
 
 typedef enum tok_t tok_t;
 
@@ -120,11 +111,11 @@ typedef struct labels_t labels_t;
 struct labels_t {
     labels_t *child[4];
     str_t label;
-    uint64_t addr;
+    sym_addr_t addr;
 };
 
-// program status word
-typedef struct psw_t {
+// sweetened condensed immediate representation
+typedef struct scir_t {
     uint8_t op;
     uint8_t reg[2];
     struct operand_t {
@@ -132,16 +123,26 @@ typedef struct psw_t {
         vaddr addr;
         msg_t *head;
     } operand;
-} psw_t;
+} scir_t;
 
 typedef struct memory_region_t {
-    uint8_t *addr;
+    uint8_t *base;
     uint32_t size;
 } memory_region_t;
 
+typedef struct seg_tails_t {
+    insn_t **insn;
+    data_t **data;
+} seg_tails_t;
+
+typedef struct seg_addrs_t {
+    vaddr insn;
+    vaddr data;
+} seg_addrs_t;
+
 // sweetened condensed object file format
 typedef struct scoff_t {
-    psw_t *psw;
+    scir_t *code;
     memory_region_t data;
     memory_region_t stack;
     bool ok;

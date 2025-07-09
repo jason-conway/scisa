@@ -1,3 +1,4 @@
+.text
 main:
     msg 'no.\tprime\n'
     mov r7, 1
