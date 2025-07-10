@@ -177,35 +177,6 @@ bool is_identifier(uint8_t c)
     return c == '_' || is_letter(c) || is_digit(c);
 }
 
-bool is_register(str_t s)
-{
-    const int64_t len = s.len;
-    if (!len || len > 3) {
-        return false;
-    }
-    s = str_lower(s);
-    if (str_equal(s, S("pc")) || str_equal(s, S("lr"))) {
-        return true;
-    }
-    if (str_equal(s, S("sp")) || str_equal(s, S("fp"))) {
-        return true;
-    }
-    if (str_equal(s, S("cc"))) {
-        return true;
-    }
-
-    uint8_t *c = &s.data[0];
-    if (c[0] != 'r') {
-        return false;
-    }
-    for (int64_t i = 1; i < s.len; i++) {
-        if (!is_digit(c[i])) {
-            return false;
-        }
-    }
-    return true;
-}
-
 str_t str_trim(str_t s)
 {
     if (!s.len) {

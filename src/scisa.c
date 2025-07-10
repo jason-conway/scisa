@@ -1,5 +1,34 @@
 #include "scisa.h"
 
+static bool is_register(str_t s)
+{
+    const int64_t len = s.len;
+    if (!len || len > 3) {
+        return false;
+    }
+    s = str_lower(s);
+    if (str_equal(s, S("pc")) || str_equal(s, S("lr"))) {
+        return true;
+    }
+    if (str_equal(s, S("sp")) || str_equal(s, S("fp"))) {
+        return true;
+    }
+    if (str_equal(s, S("cc"))) {
+        return true;
+    }
+
+    uint8_t *c = &s.data[0];
+    if (c[0] != 'r') {
+        return false;
+    }
+    for (int64_t i = 1; i < s.len; i++) {
+        if (!is_digit(c[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static bool is_mnemonic(str_t s, mnemonic_t *m)
 {
     static const str_t names[] = {
@@ -659,8 +688,6 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
     token_t t = { .data = src };
 
     seg_addrs_t addr = { 0 };
-    // uint64_t insn_addr = 0;
-    // uint64_t data_addr = 0;
 
     labels_t *table = NULL;
 
@@ -710,8 +737,6 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
                     insn->lineno = r.lineno++;
                     *tail.insn = insn;
                     tail.insn = &(*tail.insn)->next;
-                    // *insn_tail = insn;
-                    // insn_tail = &(*insn_tail)->next;
                     addr.insn++;
                 }
                 else { // is label
@@ -754,12 +779,10 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
 
 static scoff_t assemble(ast_t ast, arena_t *arena)
 {
-    // fprintf(stderr, "[assemble]\n");
     memory_region_t data = { 0 };
     for (data_t *d = ast.head.data; d; d = d->next) {
         data.size += d->sz;
     }
-    // fprintf(stderr, "    [data] allocating %u bytes for segment\n", data.size);
     data.base = alloc(arena, uint8_t, data.size);
 
     size_t offset = 0;
@@ -772,7 +795,6 @@ static scoff_t assemble(ast_t ast, arena_t *arena)
     for (insn_t *n = ast.head.insn; n; n = n->next) {
         exec_size++;
     }
-    // fprintf(stderr, "    [text] allocating %u bytes for segment\n", data.size);
 
     scir_t *code = alloc(arena, scir_t, exec_size + 1);
 
