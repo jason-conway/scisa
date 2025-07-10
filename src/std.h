@@ -1,5 +1,29 @@
 #pragma once
 
+#ifndef __has_builtin
+    #define __has_builtin(x)
+#endif
+
+#ifndef __has_attribute
+    #define __has_attribute(x)
+#endif
+
+#ifndef unlikely
+    #if __has_builtin(__builtin_expect)
+        #define unlikely(x) __builtin_expect(!!(x), 0)
+    #else
+        #define unlikely(x)
+    #endif
+#endif
+
+#ifndef likely
+    #if __has_builtin(__builtin_expect)
+        #define likely(x) __builtin_expect(!!(x), 1)
+    #else
+        #define likely(x)
+    #endif
+#endif
+
 // Expands to nothing
 #define NOTHING()
 

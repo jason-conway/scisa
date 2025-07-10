@@ -9,13 +9,13 @@ enum cfg {
 
 static void *map_addr(scoff_t *obj, vaddr addr)
 {
-    if ((vaddr)(addr - STACK_LOW) < obj->stack.size) {
+    if (likely((vaddr)(addr - STACK_LOW) < obj->stack.size)) {
         return &obj->stack.base[addr - STACK_LOW];
     }
-    if ((vaddr)(addr - DATA_LOW) < obj->data.size) {
+    if (likely((vaddr)(addr - DATA_LOW) < obj->data.size)) {
         return &obj->data.base[addr - DATA_LOW];
     }
-    abort();
+    __builtin_trap();
 }
 
 result_t execute(scoff_t obj, arena_t arena)
@@ -307,7 +307,6 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region LEA
             case op_learil:
-                // fprintf(stderr, "[execute] reg: %d addr: %d imm: %d\n", w->reg[0], w->operand.addr, w->operand.imm[0]);
                 regs[w->reg[0]] = w->operand.addr + w->operand.imm[0];
                 break;
             case op_learl:
