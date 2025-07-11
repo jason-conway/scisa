@@ -673,6 +673,10 @@ static vaddr label_addr(sym_addr_t addr)
 
 static sym_addr_t symbol_addr(seg_t segment, seg_addrs_t addr)
 {
+    if (unlikely(segment > seg_max)) {
+        __builtin_trap();
+    }
+
     const sym_addr_t addrs[] = {
         (uint64_t)-1,
         (uint64_t)(addr.insn + 0x00000000) << 0x00,
@@ -691,10 +695,10 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
 
     labels_t *table = NULL;
 
-    seg_tails_t tail = {
-        .insn = &r.head.insn,
-        .data = &r.head.data
-    };
+    struct seg_tails_t {
+        insn_t **insn;
+        data_t **data;
+    } tail = { &r.head.insn, .data = &r.head.data };
 
     seg_t seg = seg_null;
 
@@ -730,6 +734,9 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
                 return r;
             case tok_identifier:
                 if (is_mnemonic(t.token, &m)) {
+                    if (seg == seg_null) {
+                        return r;
+                    }
                     insn_t *insn = parse_instruction(heap, m, &t.data);
                     if (!insn) {
                         return r;
