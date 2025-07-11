@@ -25,6 +25,7 @@ typedef enum seg_t {
     seg_null,
     seg_text,
     seg_data,
+    seg_max = seg_data,
 } seg_t;
 
 typedef enum opcode_t {
@@ -114,7 +115,7 @@ struct labels_t {
     sym_addr_t addr;
 };
 
-// sweetened condensed immediate representation
+// Sweetened Condensed Immediate Representation (SCIR)
 typedef struct scir_t {
     uint8_t op;
     uint8_t reg[2];
@@ -130,17 +131,13 @@ typedef struct memory_region_t {
     uint32_t size;
 } memory_region_t;
 
-typedef struct seg_tails_t {
-    insn_t **insn;
-    data_t **data;
-} seg_tails_t;
 
 typedef struct seg_addrs_t {
     vaddr insn;
     vaddr data;
 } seg_addrs_t;
 
-// sweetened condensed object file format
+// Sweetened Condensed Object File Format (SCOFF)
 typedef struct scoff_t {
     scir_t *code;
     memory_region_t data;

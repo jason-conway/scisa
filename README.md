@@ -1,8 +1,8 @@
-<!-- markdownlint-disable MD033 MD041 MD045 -->
+<!-- markdownlint-disable MD024 MD033 MD041 MD045 -->
 
 # `scisa`: Sweetened Condensed Instruction Set Architecture
 
-`scisa` is a losely defined ISA / and an assembly interpreter for it.
+`scisa` is a losely defined ISA and an assembly interpreter for it.
 
 ---
 
@@ -17,6 +17,8 @@
 `scisa` has 32 general purpose registers, `r0` through `r31`.
 
 ### Special Purpose Registers
+
+`scisa` has 5 special purpose registers.
 
 | reg | description     |
 | --- | --------------- |
@@ -36,7 +38,7 @@ The stack is 2MB in size, with the top of the stack at `0x7fffffff`.
 
 ## The SCISA Instruction Set
 
-`scisa` has a sweet (and condensed) set of instruction
+`scisa` implements a sweet (and condensed) set of instructions.
 
 ### Arithmetic and Logic Instructions
 
@@ -53,28 +55,34 @@ The stack is 2MB in size, with the top of the stack at `0x7fffffff`.
 | AND      | reg, reg/imm     | (unsigned)r &= (unsigned)r/imm  |
 | OR       | reg, reg/imm     | (unsigned)r \|= (unsigned)r/imm |
 | XOR      | reg, reg/imm     | (unsigned)r ^= (unsigned)r/imm  |
-| LSL      | reg, reg/imm     | r <<= (unsigned)r/imm           |
-| LSR      | reg, reg/imm     | r >>= (unsigned)r/imm           |
-| ASR      | reg, reg/imm     | (signed)r >>= r/imm             |
+| LSL      | reg, reg/imm     | r <<= (unsigned)r/imm & mask    |
+| LSR      | reg, reg/imm     | r >>= (unsigned)r/imm & mask    |
+| ASR      | reg, reg/imm     | (signed)r >>= r/imm & mask      |
 | INC      | reg              | r++                             |
 | DEC      | reg              | r--                             |
 | CMP      | reg/imm, reg/imm | CC = (d > s) - (d < s)          |
 
+#### Notes
+
+- Shift operations (`LSL`, `LSR`, `ASR`) mask of $\texttt{0x1f}$.
+- The signed modulo instruction (`SMOD`) uses truncated division, matching the
+  behavior of languages like C.
+- `CMP` *does* allow imm/imm comparison.
+
 ### Control Flow Instructions
 
-| Mnemonic | Operands         | Operation                   |
-| -------- | ---------------- | --------------------------- |
-| CMP      | reg/imm, reg/imm | CC = (d > s) - (d < s)      |
-| JMP      | label            | PC = &label                 |
-| JNE      | label            | if CC != 0 then PC = &label |
-| JE       | label            | if CC == 0 then PC = &label |
-| JGE      | label            | if CC >= 0 then PC = &label |
-| JG       | label            | if CC > 0 then PC = &label  |
-| JLE      | label            | if CC <= 0 then PC = &label |
-| JL       | label            | if CC < 0 then PC = &label  |
-| CALL     | label            | LR = PC; PC = &label        |
-| RET      |                  | PC = LR                     |
-| HALT     |                  | halt successfully           |
+| Mnemonic | Operands | Operation                               |
+| -------- | -------- | --------------------------------------- |
+| JMP      | label    | PC = &label                             |
+| JNE      | label    | if (CC)     {<br>&emsp;PC = &label<br>} |
+| JE       | label    | if (!CC)    {<br>&emsp;PC = &label<br>} |
+| JGE      | label    | if (CC ≥ 0) {<br>&emsp;PC = &label<br>} |
+| JG       | label    | if (CC > 0) {<br>&emsp;PC = &label<br>} |
+| JLE      | label    | if (CC ≤ 0) {<br>&emsp;PC = &label<br>} |
+| JL       | label    | if (CC < 0) {<br>&emsp;PC = &label<br>} |
+| CALL     | label    | LR = PC<br>PC = &label                  |
+| RET      |          | PC = LR                                 |
+| HALT     |          | halt successfully                       |
 
 ### Data Handling and Memory Instructions
 
@@ -117,20 +125,45 @@ Use `.text` and `.data` to switch back and forth between segments as needed.
 
 ### Assembly Syntax
 
-All mnemonics can be uppercase or lowercase: ADD == add
+#### Notes
 
-All registers can be uppercase or lowercase. R10 == r10
+All mnemonics can be uppercase or lowercase:
 
-Registers names can NOT be specified with hex. R31 == r31 but R31 != r1f
+```asm
+add r1, r2
+```
+
+and
+
+```asm
+ADD r1, r2
+```
+
+are equivalent. Similarly, all registers can be uppercase or lowercase:
+
+```asm
+mul r1, r2
+```
+
+and
+
+```asm
+mul R1, R2
+```
+
+are equivalent.
+
+---
 
 #### Immediate Values
 
-Immediate values can be specified in decimal or hexadecimal format.
-
-Hexadecimal values are prefixed with `0x`
+Immediate values can be specified in decimal or hexadecimal format. Hexadecimal
+values are prefixed with `0x` and are case-insensitive.
 
 ```asm
 mov r4, 0x1000
+mov r5, 0xFFFF
+mov r6, 0xffff
 ```
 
 Decimal values are specified without a prefix.
@@ -148,16 +181,31 @@ mov r8, -4096
 mov r9, +4096   ; ditto
 ```
 
-#### `reg, reg/imm/imm(reg)`
+---
 
-Load and Store instructions support `reg, reg/imm/imm(reg)` syntax.
+#### `reg, reg/imm`
+
+Most instructions use the `reg, reg/imm` syntax.
 
 ```asm
-[ldr|str] r16, sp
-[ldr|str] r16, 0x1000
-[ldr|str] r16, 48(sp)
-[ldr|str] r16, 0x30(sp)
+add r1, r2
+sub r3, 50
 ```
+
+---
+
+#### `reg, reg/imm/imm(reg)`
+
+Load and store instructions support a `reg, reg/imm/imm(reg)` syntax.
+
+```asm
+ldr r18, 48(sp)
+...
+...
+str r18, 0x30(sp)
+```
+
+---
 
 #### `reg, label/imm(label)`
 
