@@ -389,12 +389,9 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     return NULL;
             }
             break;
-#pragma region m_ldr m_str
+#pragma region m_ldr
         case m_ldr:
-        case m_str:
-            n->op = op_ldrri + 3 * (m - m_ldr);
-
-            // reg
+            n->op = op_ldrri; // [0] reg imm
             t = lex(t.data);
             switch (t.type) {
                 case tok_register:
@@ -420,7 +417,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
             switch (t.type) {
                 // if second operand is a reg, we're all done
                 case tok_register:
-                    n->op++; // change to reg-reg variant
+                    n->op++; // [1] reg reg
                     if (!str_reg(&reg, t.token)) {
                         return NULL;
                     }
@@ -452,7 +449,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     t = lex(t.data);
                     switch (t.type) {
                         case tok_register:
-                            n->op += 2; // an elusive op_XXXrir
+                            n->op += 2;
                             if (!str_reg(&reg, t.token)) {
                                 return NULL;
                             }
@@ -462,6 +459,86 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                             return NULL;
                     }
                     // ensure rparen
+                    t = lex(t.data);
+                    switch (t.type) {
+                        case tok_rparen:
+                            break;
+                        default:
+                            return NULL;
+                    }
+                    break;
+                default:
+                    return NULL;
+            }
+            break;
+#pragma endregion
+#pragma region m_str
+        case m_str:
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_register:
+                    n->op = op_strri; // reg imm
+                    if (!str_reg(&reg, t.token)) {
+                        return NULL;
+                    }
+                    n->reg[0] = reg;
+                    break;
+                case tok_integer:
+                    n->op = op_strii; // imm imm
+                    if (!str_i32(&imm, t.token)) {
+                        return NULL;
+                    }
+                    n->imm[0] = imm;
+                    break;
+                default:
+                    return NULL;
+            }
+            // Eat comma
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_comma:
+                    break;
+                default:
+                    return NULL;
+            }
+
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_register:
+                    n->op++; // op_strXr
+                    if (!str_reg(&reg, t.token)) {
+                        return NULL;
+                    }
+                    n->reg[1] = reg;
+                    break;
+                case tok_integer:
+                    if (!str_i32(&imm, t.token)) {
+                        return NULL;
+                    }
+                    n->imm[1] = imm;
+                    t = lex(t.data);
+                    switch (t.type) {
+                        case tok_newline:
+                        case tok_eof:
+                            *src = t.data;
+                            return n;
+                        case tok_lparen:
+                            break;
+                        default:
+                            return NULL;
+                    }
+                    t = lex(t.data);
+                    switch (t.type) {
+                        case tok_register:
+                            n->op += 2; // op_strXir
+                            if (!str_reg(&reg, t.token)) {
+                                return NULL;
+                            }
+                            n->reg[1] = reg;
+                            break;
+                        default:
+                            return NULL;
+                    }
                     t = lex(t.data);
                     switch (t.type) {
                         case tok_rparen:
@@ -842,7 +919,7 @@ static scoff_t assemble(ast_t ast, arena_t *arena)
             case op_strri:
             case op_cmpri:
                 code[i].reg[0] = n->reg[0];
-                code[i].operand.imm[0] = n->imm[1];
+                code[i].operand.imm[1] = n->imm[1];
                 break;
             case op_movrr:
             case op_addrr:
@@ -875,18 +952,31 @@ static scoff_t assemble(ast_t ast, arena_t *arena)
                 break;
             case op_ldrrir:
             case op_strrir:
-                code[i].operand.imm[0] = n->imm[1];
                 code[i].reg[0] = n->reg[0];
+                code[i].operand.imm[1] = n->imm[1];
                 code[i].reg[1] = n->reg[1];
                 break;
             case op_learil:
                 code[i].reg[0] = n->reg[0];
-                code[i].operand.imm[0] = n->imm[1];
+                code[i].operand.imm[1] = n->imm[1];
                 code[i].operand.addr = n->addr;
                 break;
             case op_learl:
                 code[i].reg[0] = n->reg[0];
                 code[i].operand.addr = n->addr;
+                break;
+            case op_strii:
+                code[i].operand.imm[0] = n->imm[0];
+                code[i].operand.imm[1] = n->imm[1];
+                break;
+            case op_strir:
+                code[i].operand.imm[0] = n->imm[0];
+                code[i].reg[1] = n->reg[1];
+                break;
+            case op_striir:
+                code[i].operand.imm[0] = n->imm[0];
+                code[i].operand.imm[1] = n->imm[1];
+                code[i].reg[1] = n->reg[1];
                 break;
             case op_jmp:
             case op_jne:

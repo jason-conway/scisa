@@ -82,7 +82,7 @@ struct msg_t {
 typedef struct data_t data_t;
 struct data_t {
     data_t *next;
-    size_t lineno;
+    uint32_t lineno;
     uint32_t val;
     uint8_t sz;
 };

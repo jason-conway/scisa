@@ -76,7 +76,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region MOV
             case op_movri:
-                regs[w->reg[0]] = w->operand.imm[0];
+                regs[w->reg[0]] = w->operand.imm[1];
                 break;
             case op_movrr:
                 regs[w->reg[0]] = regs[w->reg[1]];
@@ -84,7 +84,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region ADD
             case op_addri:
-                regs[w->reg[0]] += (uint32_t)w->operand.imm[0];
+                regs[w->reg[0]] += (uint32_t)w->operand.imm[1];
                 break;
             case op_addrr:
                 regs[w->reg[0]] += (uint32_t)regs[w->reg[1]];
@@ -92,7 +92,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region SADD
             case op_saddri:
-                regs[w->reg[0]] += w->operand.imm[0];
+                regs[w->reg[0]] += w->operand.imm[1];
                 break;
             case op_saddrr:
                 regs[w->reg[0]] += regs[w->reg[1]];
@@ -100,7 +100,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region SUB
             case op_subri:
-                regs[w->reg[0]] -= (uint32_t)w->operand.imm[0];
+                regs[w->reg[0]] -= (uint32_t)w->operand.imm[1];
                 break;
             case op_subrr:
                 regs[w->reg[0]] -= (uint32_t)regs[w->reg[1]];
@@ -108,7 +108,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region MUL
             case op_mulri:
-                regs[w->reg[0]] *= (uint32_t)w->operand.imm[0];
+                regs[w->reg[0]] *= (uint32_t)w->operand.imm[1];
                 break;
             case op_mulrr:
                 regs[w->reg[0]] *= (uint32_t)regs[w->reg[1]];
@@ -116,14 +116,14 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region DIV
             case op_divri:
-                switch (w->operand.imm[0]) {
+                switch (w->operand.imm[1]) {
                     case 0:
                         return r;
                     case -1:
                         regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
                         break;
                     default:
-                        regs[w->reg[0]] /= (uint32_t)w->operand.imm[0];
+                        regs[w->reg[0]] /= (uint32_t)w->operand.imm[1];
                 }
                 break;
             case op_divrr:
@@ -140,14 +140,14 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region SDIV
             case op_sdivri:
-                switch (w->operand.imm[0]) {
+                switch (w->operand.imm[1]) {
                     case 0:
                         return r;
                     case -1:
                         regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
                         break;
                     default:
-                        regs[w->reg[0]] /= w->operand.imm[0];
+                        regs[w->reg[0]] /= w->operand.imm[1];
                 }
                 break;
             case op_sdivrr:
@@ -164,11 +164,11 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region MOD
             case op_modri:
-                switch (w->operand.imm[0]) {
+                switch (w->operand.imm[1]) {
                     case 0:
                         break;
                     default:
-                        regs[w->reg[0]] %= (uint32_t)w->operand.imm[0];
+                        regs[w->reg[0]] %= (uint32_t)w->operand.imm[1];
                 }
                 break;
             case op_modrr:
@@ -182,7 +182,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region SMOD
             case op_smodri:
-                switch (w->operand.imm[0]) {
+                switch (w->operand.imm[1]) {
                     case 0:
                         break;
                     case -1:
@@ -192,7 +192,7 @@ result_t execute(scoff_t obj, arena_t arena)
                         }
                         // fallthrough
                     default:
-                        regs[w->reg[0]] %= w->operand.imm[0];
+                        regs[w->reg[0]] %= w->operand.imm[1];
                 }
                 break;
             case op_smodrr:
@@ -212,7 +212,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region AND
             case op_andri:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] & (uint32_t)w->operand.imm[0];
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] & (uint32_t)w->operand.imm[1];
                 break;
             case op_andrr:
                 regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] & (uint32_t)regs[w->reg[1]];
@@ -220,7 +220,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region OR
             case op_orri:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] | (uint32_t)w->operand.imm[0];
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] | (uint32_t)w->operand.imm[1];
                 break;
             case op_orrr:
                 regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] | (uint32_t)regs[w->reg[1]];
@@ -228,7 +228,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region XOR
             case op_xorri:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] ^ (uint32_t)w->operand.imm[0];
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] ^ (uint32_t)w->operand.imm[1];
                 break;
 
             case op_xorrr:
@@ -237,7 +237,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region LSL
             case op_lslri:
-                regs[w->reg[0]] <<= ((uint32_t)w->operand.imm[0] & 0x1f);
+                regs[w->reg[0]] <<= ((uint32_t)w->operand.imm[1] & 0x1f);
                 break;
             case op_lslrr:
                 regs[w->reg[0]] <<= ((uint32_t)regs[w->reg[1]] & 0x1f);
@@ -245,7 +245,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region LSR
             case op_lsrri:
-                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] >> ((uint32_t)w->operand.imm[0] & 0x1f);
+                regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] >> ((uint32_t)w->operand.imm[1] & 0x1f);
                 break;
             case op_lsrrr:
                 regs[w->reg[0]] = (uint32_t)regs[w->reg[0]] >> ((uint32_t)regs[w->reg[1]] & 0x1f);
@@ -253,7 +253,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region ASR
             case op_asrri:
-                regs[w->reg[0]] >>= ((uint32_t)w->operand.imm[0] & 0x1f);
+                regs[w->reg[0]] >>= ((uint32_t)w->operand.imm[1] & 0x1f);
                 break;
             case op_asrrr:
                 regs[w->reg[0]] >>= ((uint32_t)regs[w->reg[1]] & 0x1f);
@@ -261,25 +261,36 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region LDR
             case op_ldrri:
-                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, regs[w->operand.imm[0]]), sizeof(uint32_t));
+                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, w->operand.imm[1]), sizeof(uint32_t));
                 break;
             case op_ldrrr:
                 __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, regs[w->reg[1]]), sizeof(uint32_t));
                 break;
             case op_ldrrir:
-                rel = regs[w->reg[1]] + w->operand.imm[0];
+                rel = regs[w->reg[1]] + w->operand.imm[1];
                 __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, rel), sizeof(uint32_t));
                 break;
 #pragma endregion
 #pragma region STR
+            case op_strii:
+                __builtin_memcpy(map_addr(&obj, w->operand.imm[1]), &w->operand.imm[0], sizeof(uint32_t));
+                break;
+            case op_strir:
+                __builtin_memcpy(map_addr(&obj, regs[w->reg[1]]), &w->operand.imm[0], sizeof(uint32_t));
+                break;
+            case op_striir:
+                rel = regs[w->reg[1]] + w->operand.imm[1];
+                __builtin_memcpy(map_addr(&obj, rel), &w->operand.imm[0], sizeof(uint32_t));
+                break;
+
             case op_strri:
-                __builtin_memcpy(map_addr(&obj, w->operand.imm[0]), &regs[w->reg[0]], sizeof(uint32_t));
+                __builtin_memcpy(map_addr(&obj, w->operand.imm[1]), &regs[w->reg[0]], sizeof(uint32_t));
                 break;
             case op_strrr:
                 __builtin_memcpy(map_addr(&obj, regs[w->reg[1]]), &regs[w->reg[0]], sizeof(uint32_t));
                 break;
             case op_strrir:
-                rel = regs[w->reg[1]] + w->operand.imm[0];
+                rel = regs[w->reg[1]] + w->operand.imm[1];
                 __builtin_memcpy(map_addr(&obj, rel), &regs[w->reg[0]], sizeof(uint32_t));
                 break;
 #pragma endregion
@@ -296,7 +307,7 @@ result_t execute(scoff_t obj, arena_t arena)
                 break;
             case op_cmpri:
                 a = regs[w->reg[0]];
-                b = w->operand.imm[0];
+                b = w->operand.imm[1];
                 regs[cc] = (a > b) - (a < b);
                 break;
             case op_cmprr:
@@ -307,7 +318,7 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region LEA
             case op_learil:
-                regs[w->reg[0]] = w->operand.addr + w->operand.imm[0];
+                regs[w->reg[0]] = w->operand.addr + w->operand.imm[1];
                 break;
             case op_learl:
                 regs[w->reg[0]] = w->operand.addr;

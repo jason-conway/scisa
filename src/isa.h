@@ -41,6 +41,9 @@
     ldrri,   \
     ldrrr,   \
     ldrrir,  \
+    strii,   \
+    strir,   \
+    striir,  \
     strri,   \
     strrr,   \
     strrir,  \
