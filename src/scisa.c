@@ -253,7 +253,7 @@ static data_t *parse_directive(arena_t *a, directive_t dir, str_t *src)
 {
     token_t t = { .data = *src };
     int32_t val = 0;
-    if (dir != dir_word && dir != dir_byte) {
+    if (dir != dir_word && dir != dir_byte && dir != dir_zero) {
         return NULL;
     }
 
@@ -278,6 +278,9 @@ static data_t *parse_directive(arena_t *a, directive_t dir, str_t *src)
             n->val = (uint32_t)val;
             n->sz = 4;
             break;
+        case dir_zero:
+            n->val = 0;
+            n->sz = val;
         default:
             return NULL;
     }

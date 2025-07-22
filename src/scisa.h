@@ -84,7 +84,7 @@ struct data_t {
     data_t *next;
     uint32_t lineno;
     uint32_t val;
-    uint8_t sz;
+    uint16_t sz;
 };
 
 typedef struct insn_t insn_t;
