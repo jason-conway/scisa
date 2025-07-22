@@ -27,9 +27,9 @@
 
 The stack is 2MB in size, with the top of the stack at `0x7fffffff`.
 
-| size | high address | low address |
-| ---- | ------------ | ----------- |
-| 2MB  | 0x7fffffff   | 0x7fdfffff  |
+| size | high address | low address  |
+| ---- | ------------ | ------------ |
+| 2MB  | `0x7fffffff` | `0x7fdfffff` |
 
 ### Data Segment
 
@@ -42,76 +42,69 @@ to be small without being constraining. Instructions are being added as needed.
 
 ### Arithmetic and Logic Instructions
 
-| Mnemonic | Operands         | Operation                       |
-| -------- | ---------------- | ------------------------------- |
-| add      | reg, reg/imm     | r += (unsigned)r/imm            |
-| sadd     | reg, reg/imm     | r += (signed)r/imm              |
-| sub      | reg, reg/imm     | r -= (unsigned)r/imm            |
-| mul      | reg, reg/imm     | r *= (unsigned)r/imm            |
-| div      | reg, reg/imm     | r /= (unsigned)r/imm            |
-| sdiv     | reg, reg/imm     | r /= (signed)r/imm              |
-| mod      | reg, reg/imm     | r %= (unsigned)r/imm            |
-| smod     | reg, reg/imm     | r %= (signed)r/imm              |
-| and      | reg, reg/imm     | (unsigned)r &= (unsigned)r/imm  |
-| or       | reg, reg/imm     | (unsigned)r \|= (unsigned)r/imm |
-| xor      | reg, reg/imm     | (unsigned)r ^= (unsigned)r/imm  |
-| lsl      | reg, reg/imm     | r <<= (unsigned)r/imm & mask    |
-| lsr      | reg, reg/imm     | r >>= (unsigned)r/imm & mask    |
-| asr      | reg, reg/imm     | (signed)r >>= r/imm & mask      |
-| inc      | reg              | r++                             |
-| dec      | reg              | r--                             |
-| cmp      | reg/imm, reg/imm | cc = (d > s) - (d < s)          |
+| Mnemonic | Operands           | Operation                           |
+| -------- | ------------------ | ----------------------------------- |
+| `add`    | `reg, reg/imm`     | `rd += (unsigned)rs/imm`            |
+| `sadd`   | `reg, reg/imm`     | `rd += (signed)rs/imm`              |
+| `sub`    | `reg, reg/imm`     | `rd -= (unsigned)rs/imm`            |
+| `mul`    | `reg, reg/imm`     | `rd *= (unsigned)rs/imm`            |
+| `div`    | `reg, reg/imm`     | `rd /= (unsigned)rs/imm`            |
+| `sdiv`   | `reg, reg/imm`     | `rd /= (signed)rs/imm`              |
+| `mod`    | `reg, reg/imm`     | `rd %= (unsigned)rs/imm`            |
+| `smod`   | `reg, reg/imm`     | `rd %= (signed)rs/imm`              |
+| `and`    | `reg, reg/imm`     | `(unsigned)rd &= (unsigned)rs/imm`  |
+| `or`     | `reg, reg/imm`     | `(unsigned)rd \|= (unsigned)rs/imm` |
+| `xor`    | `reg, reg/imm`     | `(unsigned)rd ^= (unsigned)rs/imm`  |
+| `lsl`    | `reg, reg/imm`     | `rd <<= (unsigned)rs/imm & mask`    |
+| `lsr`    | `reg, reg/imm`     | `rd >>= (unsigned)rs/imm & mask`    |
+| `asr`    | `reg, reg/imm`     | `(signed)rd >>= rs/imm & mask`      |
+| `inc`    | `reg`              | `rd++`                              |
+| `dec`    | `reg`              | `rd--`                              |
+| `cmp`    | `reg/imm, reg/imm` | `cc = (rd > rs) - (rd < rs)`        |
 
 #### Notes
 
 - Shift operations (`lsl`, `lsr`, `asr`) mask of `0x1f`
 - The signed modulo instruction (`smod`) uses truncated division, matching the
   behavior of languages like C
-- `cmp` *does* allow imm/imm comparison
+- `cmp` *does* allow `imm/imm` comparison
 
 ### Control Flow Instructions
 
-| Mnemonic | Operands | Operation               |
-| -------- | -------- | ----------------------- |
-| jmp      | label    | pc = &label             |
-| jne      | label    | if (cc) pc = &label     |
-| je       | label    | if (!cc) pc = &label    |
-| jge      | label    | if (cc ≥ 0) pc = &label |
-| jg       | label    | if (cc > 0) pc = &label |
-| jle      | label    | if (cc ≤ 0) pc = &label |
-| jl       | label    | if (cc < 0) pc = &label |
-| call     | label    | lr = pc; pc = &label    |
-| ret      |          | pc = lr                 |
-| halt     |          | halt successfully       |
+| Mnemonic | Operands | Operation                 |
+| -------- | -------- | ------------------------- |
+| `jmp`    | `label`  | `pc = &label`             |
+| `jne`    | `label`  | `if (cc) pc = &label`     |
+| `je`     | `label`  | `if (!cc) pc = &label`    |
+| `jge`    | `label`  | `if (cc ≥ 0) pc = &label` |
+| `jg`     | `label`  | `if (cc > 0) pc = &label` |
+| `jle`    | `label`  | `if (cc ≤ 0) pc = &label` |
+| `jl`     | `label`  | `if (cc < 0) pc = &label` |
+| `call`   | `label`  | `lr = pc; pc = &label`    |
+| `ret`    |          | `pc = lr`                 |
+| `halt`   |          | `halt successfully`       |
 
 ### Data Handling and Memory Instructions
 
-| Mnemonic | Operands                  | Operation                                                                      |
-| -------- | ------------------------- | ------------------------------------------------------------------------------ |
-| mov      | reg, reg/imm              | r = r/imm                                                                      |
-| push     | reg                       | push a register value onto the stack                                           |
-| pop      | reg                       | pop a value from the stack into a register                                     |
-| ldr      | reg, reg/imm/imm(reg)     | load word from memory into destination register                                |
-| str      | reg/imm, reg/imm/imm(reg) | store word from source register into memory                                    |
-| lea      | reg, label/imm(label)     | load the effective address of the source operand into the destination register |
+| Mnemonic | Operands                    | Operation                       |
+| -------- | --------------------------- | ------------------------------- |
+| `mov`    | `reg, reg/imm`              | `rd = rs/imm`                   |
+| `push`   | `reg`                       | `sp -= 4; *sp = rs`             |
+| `pop`    | `reg`                       | `rd = *sp; sp += 4`             |
+| `ldr`    | `reg, reg/imm/imm(reg)`     | `rd = *rs/*imm/*(imm + rs)`     |
+| `str`    | `reg/imm, reg/imm/imm(reg)` | `*rd/*imm/*(imm + rd) = rs/imm` |
+| `lea`    | `reg, label/imm(label)`     | `rd = &label/(&label + imm)`    |
 
 #### Notes
 
-- The first operand of `ldr` is the **destination** register. Regardless of whether
-  the second operand is an immediate value, a register, or an immediate offset
-  from a register, the value of the operand is interpreted as a memory address
-  specifying where to load a word from.
-- The first operand of `str` is the **source** register. Like `ldr`, it does not
+- The first operand of `ldr` is the **destination** register (`rd`). Regardless of
+  whether the second operand is an immediate value, a register, or an immediate
+  offset from a register, the resulting value is interpreted as the load
+  *address*.
+- The first operand of `str` is the **source** register (`rs`). Like `ldr`, it does not
   matter whether the second operand is an immediate value, a register, or an
-  immediate offset from a register. The value of the operand is interpreted as a
-  memory address specifying where to store the value of the source register to.
+  immediate offset from a register, the resulting value is interpreted as the store *address*.
 
-For example, the value
-
-```asm
-mov r8, 0x10000000
-
-```
 
 ### String and Output Instructions
 
@@ -359,31 +352,31 @@ msg     '\r', r4, '\t', r5, '\0'
 Let PUSH and POP accept a variable number of register operands
 
 ```u
+-fverbose-asm
 -Os
--mips32r5
+-mips1
+-mgp32
+-msym32
+-mlong32
 -fno-delayed-branch
+-mcompact-branches=never
 -mno-micromips
 -mno-mt
 -mno-eva
 -mno-mcu
--mgp32
 -mno-virt
 -mno-xpa
 -mno-crc
--msym32
--mlong32
+-mno-mad
+-mno-dsp
+-mno-madd4
+-mno-imadd
+-mno-llsc
+-mno-lxc1-sxc1
+-mno-memcpy
 -msoft-float
 -mno-split-addresses
--fverbose-asm
 -mno-load-store-pairs
--mno-llsc
--mno-dsp
 -mno-check-zero-division
--mno-memcpy
--mno-mad
--mno-imadd
--mno-madd4
--mno-lxc1-sxc1
--mcompact-branches=never
 -mframe-header-opt
 ```
