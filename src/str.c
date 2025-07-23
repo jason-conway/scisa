@@ -61,7 +61,9 @@ bool str_i32(int32_t *d, str_t s)
     size_t i = 0;
     bool neg = false;
     uint32_t value = 0;
-    uint32_t limit = 0x7fffffff;
+
+    // TODO: any regressions from this?
+    uint32_t limit = UINT32_MAX;
 
     switch (*s.data) {
         case '-':

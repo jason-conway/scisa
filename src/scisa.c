@@ -253,7 +253,7 @@ static data_t *parse_directive(arena_t *a, directive_t dir, str_t *src)
 {
     token_t t = { .data = *src };
     int32_t val = 0;
-    if (dir != dir_word && dir != dir_byte && dir != dir_zero) {
+    if (dir == dir_text && dir != dir_data) {
         return NULL;
     }
 
@@ -281,6 +281,10 @@ static data_t *parse_directive(arena_t *a, directive_t dir, str_t *src)
         case dir_zero:
             n->val = 0;
             n->sz = val;
+            break;
+        case dir_align:
+            n->align = (uint8_t)val;
+            break;
         default:
             return NULL;
     }
@@ -781,6 +785,7 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
     } tail = { &r.head.insn, .data = &r.head.data };
 
     seg_t seg = seg_null;
+    size_t align = DEFAULT_ALIGNMENT;
 
     for (;;) {
         mnemonic_t m = m_null;
@@ -856,7 +861,11 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
                     data->lineno = r.lineno++;
                     *tail.data = data;
                     tail.data = &(*tail.data)->next;
-                    addr.data += data->sz;
+                    if (data->align) {
+                        align = data->align;
+                        break;
+                    }
+                    addr.data += (data->sz < align) ? align : data->sz;
                     break;
                 }
                 return r;
@@ -864,35 +873,60 @@ static ast_t parse(str_t src, arena_t *heap, arena_t stack)
     }
 }
 
-static scoff_t assemble(ast_t ast, arena_t *arena)
+static uint32_t ds_size(ast_t *ast)
 {
-    memory_region_t data = { 0 };
-    for (data_t *d = ast.head.data; d; d = d->next) {
-        data.size += d->sz;
+    uint8_t align = DEFAULT_ALIGNMENT;
+    uint32_t sz = 0;
+    for (data_t *d = ast->head.data; d; d = d->next) {
+        if (d->align) {
+            align = d->align;
+            // data entry with non-zero align field has no size
+            continue;
+        }
+        sz += (d->sz < align) ? align : d->sz;
     }
-    data.base = alloc(arena, uint8_t, data.size);
+    return sz;
+}
 
+static memory_region_t assemble_data(ast_t *ast, arena_t *arena)
+{
+    memory_region_t r = {
+        .size = ds_size(ast)
+    };
+
+    fprintf(stderr, "[assemble] allocating %u bytes for data segment\n", r.size);
+    r.base = alloc(arena, uint8_t, r.size);
+
+    uint8_t align = DEFAULT_ALIGNMENT;
     size_t offset = 0;
-    for (data_t *d = ast.head.data; d; d = d->next) {
-        __builtin_memcpy(&data.base[offset], &d->val, d->sz);
-        offset += d->sz;
+
+    for (data_t *d = ast->head.data; d; d = d->next) {
+        if (d->align) {
+            align = d->align;
+            continue;
+        }
+        fprintf(stderr, "[assemble] [%zu] [0x%08x] [%u]\n", offset, d->val, d->sz);
+        __builtin_memcpy(&r.base[offset], &d->val, d->sz);
+        offset += (d->sz < align) ? align : d->sz;
+    }
+    return r;
+}
+
+static scir_t *assemble_code(ast_t *ast, arena_t *arena)
+{
+    size_t sz = 0;
+    for (insn_t *n = ast->head.insn; n; n = n->next) {
+        sz++;
     }
 
-    size_t exec_size = 0;
-    for (insn_t *n = ast.head.insn; n; n = n->next) {
-        exec_size++;
-    }
-
-    scir_t *code = alloc(arena, scir_t, exec_size + 1);
-
-    scoff_t obj = { 0 };
+    scir_t *code = alloc(arena, scir_t, sz + 1);
 
     size_t i = 0;
-    for (insn_t *n = ast.head.insn; n; n = n->next) {
+    for (insn_t *n = ast->head.insn; n; n = n->next) {
         code[i].op = (uint8_t)n->op;
         switch (n->op) {
             case op_abort:
-                return obj;
+                return NULL;
             case op_ret:
             case op_halt:
                 break;
@@ -997,13 +1031,17 @@ static scoff_t assemble(ast_t ast, arena_t *arena)
         }
         i++;
     }
-
-    obj.code = code;
-    obj.data = data;
-    obj.ok = true;
-    return obj;
+    return code;
 }
 
+static scoff_t assemble(ast_t ast, arena_t *arena)
+{
+    scoff_t obj = { 0 };
+    obj.data = assemble_data(&ast, arena);
+    obj.code = assemble_code(&ast, arena);
+    obj.ok = !!obj.code;
+    return obj;
+}
 
 static str_t os_loadstdin(arena_t *a)
 {

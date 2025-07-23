@@ -152,5 +152,6 @@
     data, \
     word, \
     byte, \
-    zero
+    zero, \
+    align
 #pragma endregion

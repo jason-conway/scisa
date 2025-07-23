@@ -53,6 +53,10 @@ typedef uint64_t sym_addr_t;
 
 typedef enum tok_t tok_t;
 
+enum scisa {
+    DEFAULT_ALIGNMENT = sizeof(vaddr)
+};
+
 typedef struct token_t {
     enum tok_t {
         tok_error,
@@ -85,6 +89,7 @@ struct data_t {
     uint32_t lineno;
     uint32_t val;
     uint16_t sz;
+    uint8_t align;
 };
 
 typedef struct insn_t insn_t;
