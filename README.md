@@ -84,6 +84,10 @@ to be small without being constraining. Instructions are being added as needed.
 | `ret`    |          | `pc = lr`                 |
 | `halt`   |          | `halt successfully`       |
 
+#### Notes
+
+- All programs must end with a halt instruction
+
 ### Data Handling and Memory Instructions
 
 | Mnemonic | Operands                    | Operation                       |
@@ -97,14 +101,14 @@ to be small without being constraining. Instructions are being added as needed.
 
 #### Notes
 
-- The first operand of `ldr` is the **destination** register (`rd`). Regardless of
-  whether the second operand is an immediate value, a register, or an immediate
-  offset from a register, the resulting value is interpreted as the load
-  *address*.
-- The first operand of `str` is the **source** register (`rs`). Like `ldr`, it does not
-  matter whether the second operand is an immediate value, a register, or an
-  immediate offset from a register, the resulting value is interpreted as the store *address*.
-
+- The first operand of `ldr` is the **destination** register (`rd`). Regardless
+  of whether the second operand is an immediate value, a register, or an
+  immediate offset from a register, the resulting value is interpreted as the
+  load *address*.
+- The first operand of `str` is the **source** register (`rs`). Like `ldr`, it
+  does not matter whether the second operand is an immediate value, a register,
+  or an immediate offset from a register, the resulting value is interpreted as
+  the store *address*.
 
 ### String and Output Instructions
 
@@ -225,6 +229,8 @@ pop r5  ; ldr r5, sp
 
 ### `cmp`
 
+`cmp` variations:
+
 ```asm
 ; r4 = 5
 ; r5 = 10
@@ -234,6 +240,14 @@ cmp 5, r5  ; cc = -1
 cmp 5, 10  ; cc = -1
 ```
 
+#### `cc` register
+
+```asm
+cmp 1, 0 ; cc = -1
+cmp 0, 0 ; cc =  0
+cmp 0, 1 ; cc =  1
+```
+
 ### Directives
 
 `scisa` implements assembler directives for specifying segments and creating
@@ -241,18 +255,21 @@ initialized data.
 
 | segment directive | description                |
 | ----------------- | -------------------------- |
-| .text             | mark start of text segment |
-| .data             | mark start of data segment |
+| `.text`           | mark start of text segment |
+| `.data`           | mark start of data segment |
 
 Use `.text` and `.data` to switch back and forth between segments as needed.
 
 > Although usage of the data segment is optional, there is no default segment.
-> If a program contains instructions, it must also contain a `.text` directive.
+> If a program contains instructions, it must also contain a `.text` directive
+> (and a halt instruction)
 
-| data directive | syntax                         | description           |
-| -------------- | ------------------------------ | --------------------- |
-| .word          | `.word 0x2315`<br>`.word 8981` | create a 4-byte value |
-| .byte          | `.byte 0x23`<br>`.byte 35`     | create a 1-byte value |
+| data directive | syntax       | description               | notes                  |
+| -------------- | ------------ | ------------------------- | ---------------------- |
+| .word          | `.word imm`  | create a 4-byte value     |                        |
+| .byte          | `.byte imm`  | create a 1-byte value     | keeps lower byte `imm` |
+| .zero          | `.zero imm`  | emit `imm` zeros          |                        |
+| .align         | `.align imm` | align data to `imm` bytes |                        |
 
 ### Assembly Syntax
 
