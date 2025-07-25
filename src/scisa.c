@@ -1,5 +1,7 @@
 #include "scisa.h"
 
+static str_t os_loadstdin(arena_t *a);
+
 static bool is_register(str_t s)
 {
     const int64_t len = s.len;
@@ -681,11 +683,11 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
 #pragma endregion
         case m_jmp:
         case m_jne:
-        case m_je:
+        case m_jeq:
         case m_jge:
-        case m_jg:
+        case m_jgt:
         case m_jle:
-        case m_jl:
+        case m_jlt:
         case m_call:
             // Single label operand
             t = lex(t.data);
@@ -1017,11 +1019,11 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
                 break;
             case op_jmp:
             case op_jne:
-            case op_je:
+            case op_jeq:
             case op_jge:
-            case op_jg:
+            case op_jgt:
             case op_jle:
-            case op_jl:
+            case op_jlt:
             case op_call:
                 code[i].operand.addr = n->addr;
                 break;
@@ -1041,24 +1043,6 @@ static scoff_t assemble(ast_t ast, arena_t *arena)
     obj.code = assemble_code(&ast, arena);
     obj.ok = !!obj.code;
     return obj;
-}
-
-static str_t os_loadstdin(arena_t *a)
-{
-    str_t s = { 0 };
-    bool err = false;
-
-    err |= fseek(stdin, 0, SEEK_END);
-    size_t len = ftell(stdin);
-    err |= len < 1;
-    err |= fseek(stdin, 0, SEEK_SET);
-    if (err) {
-        return s;
-    }
-
-    s.data = alloc(a, uint8_t, len);
-    s.len = fread(s.data, 1, len, stdin);
-    return s;
 }
 
 static bool run(arena_t heap)
@@ -1116,4 +1100,24 @@ int main(void)
 {
     arena_t heap = bss_arena();
     return !run(heap);
+}
+
+// platform specific
+
+static str_t os_loadstdin(arena_t *a)
+{
+    str_t s = { 0 };
+    bool err = false;
+
+    err |= fseek(stdin, 0, SEEK_END);
+    size_t len = ftell(stdin);
+    err |= len < 1;
+    err |= fseek(stdin, 0, SEEK_SET);
+    if (err) {
+        return s;
+    }
+
+    s.data = alloc(a, uint8_t, len);
+    s.len = fread(s.data, 1, len, stdin);
+    return s;
 }

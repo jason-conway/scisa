@@ -48,7 +48,7 @@ loop_k:
     add   r9, r8
 
     cmp   r9, 1024   ; if (r2 > r)
-    jg    escape    ;     break
+    jgt   escape    ;     break
 
     mov   r10, r7      ; z = xx - yy + cj
     sub   r10, r8
@@ -77,15 +77,15 @@ escape:
 color:
     mov   r13, r11
     cmp   r13, 0
-    je    out0
+    jeq   out0
     cmp   r13, 1
-    je    out1
+    jeq   out1
     cmp   r13, 2
-    je    out2
+    jeq   out2
     cmp   r13, 3
-    je    out3
+    jeq   out3
     cmp   r13, 4
-    je    out4
+    jeq   out4
     jmp   next_col
 
 out0:

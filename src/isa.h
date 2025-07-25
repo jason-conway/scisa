@@ -55,11 +55,11 @@
     cmprr,   \
     jmp,     \
     jne,     \
-    je,      \
+    jeq,     \
     jge,     \
-    jg,      \
+    jgt,     \
     jle,     \
-    jl,      \
+    jlt,     \
     call,    \
     ret,     \
     msg,     \
@@ -96,11 +96,11 @@
     cmp,    \
     jmp,    \
     jne,    \
-    je,     \
+    jeq,     \
     jge,    \
-    jg,     \
+    jgt,     \
     jle,    \
-    jl,     \
+    jlt,     \
     call,   \
     msg,
 #pragma endregion

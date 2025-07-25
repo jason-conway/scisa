@@ -1,4 +1,5 @@
 .data
+.align 4
 masks:
     .word 0x55555555
     .word 0x33333333
@@ -8,7 +9,7 @@ masks:
 main:
     sub   sp, 32
     str   lr, 28(sp)
-    mov   r4, 65536 ; compute popcount for inputs 1 through this value
+    mov   r4, 16 ; compute popcount for inputs 1 through this value
     call  verify
     ldr   lr, 28(sp)
     add   sp, 32
@@ -31,7 +32,7 @@ cont:
     
     inc   r16
     cmp   r16, r17
-    jl    cont
+    jlt   cont
 
     ldr   lr,  36(sp)
     ldr   r17, 32(sp)

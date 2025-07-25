@@ -271,7 +271,7 @@ result_t execute(scoff_t obj, arena_t arena)
                 __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, rel), sizeof(uint32_t));
                 break;
 #pragma endregion
-#pragma region STR
+#pragma region STRIx
             case op_strii:
                 __builtin_memcpy(map_addr(&obj, w->operand.imm[1]), &w->operand.imm[0], sizeof(uint32_t));
                 break;
@@ -282,7 +282,8 @@ result_t execute(scoff_t obj, arena_t arena)
                 rel = regs[w->reg[1]] + w->operand.imm[1];
                 __builtin_memcpy(map_addr(&obj, rel), &w->operand.imm[0], sizeof(uint32_t));
                 break;
-
+#pragma endregion
+#pragma region STRRx
             case op_strri:
                 __builtin_memcpy(map_addr(&obj, w->operand.imm[1]), &regs[w->reg[0]], sizeof(uint32_t));
                 break;
@@ -333,7 +334,7 @@ result_t execute(scoff_t obj, arena_t arena)
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
-            case op_je:
+            case op_jeq:
                 if (!regs[cc]) {
                     regs[pc] = w->operand.addr - 1;
                 }
@@ -343,7 +344,7 @@ result_t execute(scoff_t obj, arena_t arena)
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
-            case op_jg:
+            case op_jgt:
                 if (regs[cc] > 0) {
                     regs[pc] = w->operand.addr - 1;
                 }
@@ -353,7 +354,7 @@ result_t execute(scoff_t obj, arena_t arena)
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
-            case op_jl:
+            case op_jlt:
                 if (regs[cc] < 0) {
                     regs[pc] = w->operand.addr - 1;
                 }

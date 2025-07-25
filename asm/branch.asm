@@ -5,10 +5,10 @@ main:
     mov r1, 10
     mov r2, 10
     cmp r1, r2
-    je l0
+    jeq l0
     mov r0, 0
 l0:
-    msg 'j ', r0, '\n'
+    msg 'jeq ', r0, '\n'
 
     mov r0, 1
     mov r1, 10
@@ -24,10 +24,10 @@ l1:
     mov r1, 20
     mov r2, 10
     cmp r1, r2
-    jg l2
+    jgt l2
     mov r0, 0
 l2:
-    msg 'jg ', r0, '\n'
+    msg 'jgt ', r0, '\n'
 
 
     mov r0, 1
@@ -44,10 +44,10 @@ l3:
     mov r1, 10
     mov r2, 20
     cmp r1, r2
-    jl l4
+    jlt l4
     mov r0, 0
 l4:
-    msg 'jl ', r0, '\n'
+    msg 'jlt ', r0, '\n'
 
 
     mov r0, 1
@@ -64,10 +64,10 @@ l5:
     mov r0, 1
     mov r1, 10
     cmp r1, 10
-    je l6
+    jeq l6
     mov r0, 0
 l6:
-    msg 'j ', r0, '\n'
+    msg 'jeq ', r0, '\n'
 
     mov r0, 1
     mov r1, 10
@@ -81,10 +81,10 @@ l7:
     mov r0, 1
     mov r1, 20
     cmp r1, 10
-    jg l8
+    jgt l8
     mov r0, 0
 l8:
-    msg 'jg ', r0, '\n'
+    msg 'jgt ', r0, '\n'
 
 
     mov r0, 1
@@ -99,10 +99,10 @@ l9:
     mov r0, 1
     mov r1, 10
     cmp r1, 20
-    jl l10
+    jlt l10
     mov r0, 0
 l10:
-    msg 'jl ', r0, '\n'
+    msg 'jlt ', r0, '\n'
 
 
     mov r0, 1
@@ -118,10 +118,10 @@ l11:
     mov r0, 1
     mov r2, 10
     cmp 10, r2
-    je l12
+    jeq l12
     mov r0, 0
 l12:
-    msg 'j ', r0, '\n'
+    msg 'jeq ', r0, '\n'
 
     mov r0, 1
     mov r2, 20
@@ -135,10 +135,10 @@ l13:
     mov r0, 1
     mov r2, 10
     cmp 20, r2
-    jg l14
+    jgt l14
     mov r0, 0
 l14:
-    msg 'jg ', r0, '\n'
+    msg 'jgt ', r0, '\n'
 
 
     mov r0, 1
@@ -153,10 +153,10 @@ l15:
     mov r0, 1
     mov r2, 20
     cmp 10, r2
-    jl l16
+    jlt l16
     mov r0, 0
 l16:
-    msg 'jl ', r0, '\n'
+    msg 'jlt ', r0, '\n'
 
 
     mov r0, 1
@@ -171,10 +171,10 @@ l17:
     ; cmp imm, imm
     mov r0, 1
     cmp 10, 10
-    je l18
+    jeq l18
     mov r0, 0
 l18:
-    msg 'j ', r0, '\n'
+    msg 'jeq ', r0, '\n'
 
     mov r0, 1
     cmp 10, 20
@@ -186,10 +186,10 @@ l19:
 
     mov r0, 1
     cmp 20, 10
-    jg l20
+    jgt l20
     mov r0, 0
 l20:
-    msg 'jg ', r0, '\n'
+    msg 'jgt ', r0, '\n'
 
 
     mov r0, 1
@@ -202,10 +202,10 @@ l21:
 
     mov r0, 1
     cmp 10, 20
-    jl l22
+    jlt l22
     mov r0, 0
 l22:
-    msg 'jl ', r0, '\n'
+    msg 'jlt ', r0, '\n'
 
 
     mov r0, 1

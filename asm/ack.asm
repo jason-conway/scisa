@@ -84,14 +84,14 @@ l5:
 l4:
     mov     r4,  r16
     cmp     r16, r0
-    je      l7
+    jeq     l7
 
 l11:
     mov     r16, r4
     dec     r16
 
     cmp     r5, r0
-    je      l5
+    jeq     l5
     dec     r5
     call    ackermann
 

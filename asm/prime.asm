@@ -5,14 +5,14 @@ main:
     mov r1, 0
 iter:
     cmp r1, 1000000
-    jl cont
+    jlt cont
     msg '\n'
     halt
 cont:
     mov r3, r1
     call is_prime
     cmp r0, 0
-    je skip
+    jeq skip
     msg '\r'
     msg r7, '\t', r1
     msg '\0'
@@ -24,16 +24,16 @@ skip:
 is_prime:
     mov r2, 0
     cmp r3, 1
-    je ret_false
+    jeq ret_false
     cmp r3, 2
-    je ret_true
+    jeq ret_true
 
     mov r5, 2
 loop:
     mov r4, r5
     mul r4, r5
     cmp r4, r3
-    jg check
+    jgt check
     
     mov r6, r3
     mod r6, r5
@@ -45,7 +45,7 @@ not:
     jmp loop
 check:
     cmp r2, 0
-    jg ret_false
+    jgt ret_false
     jmp ret_true
 
 ret_false:

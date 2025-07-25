@@ -1,21 +1,16 @@
 .text
 main:
-    mov r4, 5
-    mov r5, 10
-    cmp r4, r5
+
+    cmp 0, 0
     msg 'cmp ', cc, '\n'
     mov cc, 0
 
-    cmp r4, 10
+    cmp 1, 0
     msg 'cmp ', cc, '\n'
     mov cc, 0
 
-    cmp 5, r5
+    cmp 0, 1
     msg 'cmp ', cc, '\n'
     mov cc, 0
-
-    cmp 5, 10
-    msg 'cmp ', cc, '\n'
-    mov cc, 0
-
     halt
+
