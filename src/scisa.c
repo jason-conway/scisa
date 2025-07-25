@@ -355,6 +355,12 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
         case m_lsl:
         case m_lsr:
         case m_asr:
+        case m_movne:
+        case m_moveq:
+        case m_movge:
+        case m_movgt:
+        case m_movle:
+        case m_movlt:
             // op will start as imm variant of `m`
             n->op = op_movri + 2 * (m - m_mov);
 
@@ -954,6 +960,12 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_lslri:
             case op_lsrri:
             case op_asrri:
+            case op_movneri:
+            case op_moveqri:
+            case op_movgeri:
+            case op_movgtri:
+            case op_movleri:
+            case op_movltri:
             case op_ldrri:
             case op_strri:
             case op_cmpri:
@@ -975,6 +987,12 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_lslrr:
             case op_lsrrr:
             case op_asrrr:
+            case op_movnerr:
+            case op_moveqrr:
+            case op_movgerr:
+            case op_movgtrr:
+            case op_movlerr:
+            case op_movltrr:
             case op_ldrrr:
             case op_strrr:
             case op_cmprr:

@@ -38,6 +38,18 @@
     lsrrr,   \
     asrri,   \
     asrrr,   \
+    movneri, \
+    movnerr, \
+    moveqri, \
+    moveqrr, \
+    movgeri, \
+    movgerr, \
+    movgtri, \
+    movgtrr, \
+    movleri, \
+    movlerr, \
+    movltri, \
+    movltrr, \
     ldrri,   \
     ldrrr,   \
     ldrrir,  \
@@ -90,17 +102,23 @@
     lsl,    \
     lsr,    \
     asr,    \
+    movne,  \
+    moveq,  \
+    movge,  \
+    movgt,  \
+    movle,  \
+    movlt,  \
     ldr,    \
     str,    \
     lea,    \
     cmp,    \
     jmp,    \
     jne,    \
-    jeq,     \
+    jeq,    \
     jge,    \
-    jgt,     \
+    jgt,    \
     jle,    \
-    jlt,     \
+    jlt,    \
     call,   \
     msg,
 #pragma endregion

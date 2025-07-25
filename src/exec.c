@@ -259,6 +259,78 @@ result_t execute(scoff_t obj, arena_t arena)
                 regs[w->reg[0]] >>= ((uint32_t)regs[w->reg[1]] & 0x1f);
                 break;
 #pragma endregion
+#pragma region MOVNE
+            case op_movneri:
+                if (regs[cc]) {
+                    regs[w->reg[0]] = w->operand.imm[1];
+                }
+                break;
+            case op_movnerr:
+                if (regs[cc]) {
+                    regs[w->reg[0]] = regs[w->reg[1]];
+                }
+                break;
+#pragma endregion
+#pragma region MOVEQ
+            case op_moveqri:
+                if (!regs[cc]) {
+                    regs[w->reg[0]] = w->operand.imm[1];
+                }
+                break;
+            case op_moveqrr:
+                if (!regs[cc]) {
+                    regs[w->reg[0]] = regs[w->reg[1]];
+                }
+                break;
+#pragma endregion
+#pragma region MOVGE
+            case op_movgeri:
+                if (regs[cc] >= 0) {
+                    regs[w->reg[0]] = w->operand.imm[1];
+                }
+                break;
+            case op_movgerr:
+                if (regs[cc] >= 0) {
+                    regs[w->reg[0]] = regs[w->reg[1]];
+                }
+                break;
+#pragma endregion
+#pragma region MOVGT
+            case op_movgtri:
+                if (regs[cc] > 0) {
+                    regs[w->reg[0]] = w->operand.imm[1];
+                }
+                break;
+            case op_movgtrr:
+                if (regs[cc] > 0) {
+                    regs[w->reg[0]] = regs[w->reg[1]];
+                }
+                break;
+#pragma endregion
+#pragma region MOVLE
+            case op_movleri:
+                if (regs[cc] <= 0) {
+                    regs[w->reg[0]] = w->operand.imm[1];
+                }
+                break;
+            case op_movlerr:
+                if (regs[cc] <= 0) {
+                    regs[w->reg[0]] = regs[w->reg[1]];
+                }
+                break;
+#pragma endregion
+#pragma region MOVLT
+            case op_movltri:
+                if (regs[cc] < 0) {
+                    regs[w->reg[0]] = w->operand.imm[1];
+                }
+                break;
+            case op_movltrr:
+                if (regs[cc] < 0) {
+                    regs[w->reg[0]] = regs[w->reg[1]];
+                }
+                break;
+#pragma endregion
 #pragma region LDR
             case op_ldrri:
                 __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, w->operand.imm[1]), sizeof(uint32_t));
@@ -325,10 +397,19 @@ result_t execute(scoff_t obj, arena_t arena)
                 regs[w->reg[0]] = w->operand.addr;
                 break;
 #pragma endregion
+#pragma region MSG
+            case op_msg:
+                for (msg_t *m = w->operand.head; m; m = m->next) {
+                    print_str(&r.out, m->string.data ? m->string : i32_str(regs[m->reg]));
+                }
+                break;
+#pragma endregion
 #pragma region JMP
             case op_jmp:
                 regs[pc] = w->operand.addr - 1;
                 break;
+#pragma endregion
+#pragma region JCC
             case op_jne:
                 if (regs[cc]) {
                     regs[pc] = w->operand.addr - 1;
@@ -372,13 +453,6 @@ result_t execute(scoff_t obj, arena_t arena)
                     return r;
                 }
                 regs[pc] = regs[lr];
-                break;
-#pragma endregion
-#pragma region MSG
-            case op_msg:
-                for (msg_t *m = w->operand.head; m; m = m->next) {
-                    print_str(&r.out, m->string.data ? m->string : i32_str(regs[m->reg]));
-                }
                 break;
 #pragma endregion
 #pragma region HALT
