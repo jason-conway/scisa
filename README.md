@@ -75,11 +75,11 @@ to be small without being constraining. Instructions are being added as needed.
 | -------- | -------- | ------------------------- |
 | `jmp`    | `label`  | `pc = &label`             |
 | `jne`    | `label`  | `if (cc) pc = &label`     |
-| `je`     | `label`  | `if (!cc) pc = &label`    |
+| `jeq`    | `label`  | `if (!cc) pc = &label`    |
 | `jge`    | `label`  | `if (cc ≥ 0) pc = &label` |
-| `jg`     | `label`  | `if (cc > 0) pc = &label` |
+| `jgt`    | `label`  | `if (cc > 0) pc = &label` |
 | `jle`    | `label`  | `if (cc ≤ 0) pc = &label` |
-| `jl`     | `label`  | `if (cc < 0) pc = &label` |
+| `jlt`    | `label`  | `if (cc < 0) pc = &label` |
 | `call`   | `label`  | `lr = pc; pc = &label`    |
 | `ret`    |          | `pc = lr`                 |
 | `halt`   |          | `halt successfully`       |
@@ -93,6 +93,12 @@ to be small without being constraining. Instructions are being added as needed.
 | Mnemonic | Operands                    | Operation                       |
 | -------- | --------------------------- | ------------------------------- |
 | `mov`    | `reg, reg/imm`              | `rd = rs/imm`                   |
+| `movne`  | `reg, reg/imm`              | `if (cc) rd = rs/imm`           |
+| `moveq`  | `reg, reg/imm`              | `if (!cc) rd = rs/imm`          |
+| `movge`  | `reg, reg/imm`              | `if (cc ≥ 0) rd = rs/imm`       |
+| `movgt`  | `reg, reg/imm`              | `if (cc > 0) rd = rs/imm`       |
+| `movle`  | `reg, reg/imm`              | `if (cc ≤ 0) rd = rs/imm`       |
+| `movlt`  | `reg, reg/imm`              | `if (cc < 0) rd = rs/imm`       |
 | `push`   | `reg`                       | `sp -= 4; *sp = rs`             |
 | `pop`    | `reg`                       | `rd = *sp; sp += 4`             |
 | `ldr`    | `reg, reg/imm/imm(reg)`     | `rd = *rs/*imm/*(imm + rs)`     |
