@@ -411,32 +411,42 @@ result_t execute(scoff_t obj, arena_t arena)
                 regs[pc] = w->operand.addr - 1;
                 break;
 #pragma endregion
-#pragma region JCC
+#pragma region JNE
             case op_jne:
                 if (regs[cc]) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
+#pragma endregion
+#pragma region JEQ
             case op_jeq:
                 if (!regs[cc]) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
+#pragma endregion
+#pragma region JGE
             case op_jge:
                 if (regs[cc] >= 0) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
+#pragma endregion
+#pragma region JGT
             case op_jgt:
                 if (regs[cc] > 0) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
+#pragma endregion
+#pragma region JLE
             case op_jle:
                 if (regs[cc] <= 0) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
+#pragma endregion
+#pragma region JLT
             case op_jlt:
                 if (regs[cc] < 0) {
                     regs[pc] = w->operand.addr - 1;
