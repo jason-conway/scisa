@@ -111,6 +111,7 @@ result_t execute(scoff_t obj, arena_t arena)
                 switch (w->operand.imm[1]) {
                     case 0:
                         regs[w->reg[0]] = 0;
+                        break;
                     case -1:
                         regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
                         break;
@@ -122,6 +123,7 @@ result_t execute(scoff_t obj, arena_t arena)
                 switch (regs[w->reg[1]]) {
                     case 0:
                         regs[w->reg[0]] = 0;
+                        break;
                     case -1:
                         regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
                         break;
@@ -134,10 +136,14 @@ result_t execute(scoff_t obj, arena_t arena)
             case op_sdivri:
                 switch (w->operand.imm[1]) {
                     case 0:
-                        return r;
-                    case -1:
-                        regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
+                        regs[w->reg[0]] = 0;
                         break;
+                    case -1:
+                        if (regs[w->reg[0]] == INT32_MIN) {
+                            regs[w->reg[0]] = INT32_MIN;
+                            break;
+                        }
+                        // fallthrough
                     default:
                         regs[w->reg[0]] /= w->operand.imm[1];
                 }
@@ -145,10 +151,14 @@ result_t execute(scoff_t obj, arena_t arena)
             case op_sdivrr:
                 switch (regs[w->reg[1]]) {
                     case 0:
-                        return r;
-                    case -1:
-                        regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
+                        regs[w->reg[0]] = 0;
                         break;
+                    case -1:
+                        if (regs[w->reg[0]] == INT32_MIN) {
+                            regs[w->reg[0]] = INT32_MIN;
+                            break;
+                        }
+                        // fallthrough
                     default:
                         regs[w->reg[0]] /= regs[w->reg[1]];
                 }
