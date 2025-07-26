@@ -118,7 +118,7 @@ result_t execute(scoff_t obj, arena_t arena)
             case op_divri:
                 switch (w->operand.imm[1]) {
                     case 0:
-                        return r;
+                        regs[w->reg[0]] = 0;
                     case -1:
                         regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
                         break;
@@ -129,7 +129,7 @@ result_t execute(scoff_t obj, arena_t arena)
             case op_divrr:
                 switch (regs[w->reg[1]]) {
                     case 0:
-                        return r;
+                        regs[w->reg[0]] = 0;
                     case -1:
                         regs[w->reg[0]] = -(uint32_t)regs[w->reg[0]];
                         break;
