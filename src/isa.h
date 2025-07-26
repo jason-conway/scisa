@@ -12,8 +12,6 @@
     movrr,   \
     addri,   \
     addrr,   \
-    saddri,  \
-    saddrr,  \
     subri,   \
     subrr,   \
     mulri,   \
@@ -89,7 +87,6 @@
     halt,   \
     mov,    \
     add,    \
-    sadd,   \
     sub,    \
     mul,    \
     div,    \

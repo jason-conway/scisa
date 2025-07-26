@@ -45,7 +45,6 @@ to be small without being constraining. Instructions are being added as needed.
 | Mnemonic | Operands           | Operation                           |
 | -------- | ------------------ | ----------------------------------- |
 | `add`    | `reg, reg/imm`     | `rd += (unsigned)rs/imm`            |
-| `sadd`   | `reg, reg/imm`     | `rd += (signed)rs/imm`              |
 | `sub`    | `reg, reg/imm`     | `rd -= (unsigned)rs/imm`            |
 | `mul`    | `reg, reg/imm`     | `rd *= (unsigned)rs/imm`            |
 | `div`    | `reg, reg/imm`     | `rd /= (unsigned)rs/imm`            |

@@ -90,14 +90,6 @@ result_t execute(scoff_t obj, arena_t arena)
                 regs[w->reg[0]] += (uint32_t)regs[w->reg[1]];
                 break;
 #pragma endregion
-#pragma region SADD
-            case op_saddri:
-                regs[w->reg[0]] += w->operand.imm[1];
-                break;
-            case op_saddrr:
-                regs[w->reg[0]] += regs[w->reg[1]];
-                break;
-#pragma endregion
 #pragma region SUB
             case op_subri:
                 regs[w->reg[0]] -= (uint32_t)w->operand.imm[1];

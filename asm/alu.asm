@@ -10,14 +10,6 @@ main:
     add r6, r5
     call print
 
-    msg 'sadd\n'
-    call usetup
-    sadd r6, r5
-    call print
-    call isetup
-    sadd r6, r5
-    call print
-
     msg 'sub\n'
     call usetup
     sub r6, r5

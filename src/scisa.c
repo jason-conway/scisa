@@ -342,7 +342,6 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
             break;
         case m_mov:
         case m_add:
-        case m_sadd:
         case m_sub:
         case m_mul:
         case m_div:
@@ -947,7 +946,6 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
                 break;
             case op_movri:
             case op_addri:
-            case op_saddri:
             case op_subri:
             case op_mulri:
             case op_divri:
@@ -974,7 +972,6 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
                 break;
             case op_movrr:
             case op_addrr:
-            case op_saddrr:
             case op_subrr:
             case op_mulrr:
             case op_divrr:
