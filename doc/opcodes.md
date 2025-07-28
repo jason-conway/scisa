@@ -51,9 +51,9 @@
 | `cmprr`   | `cmp    rd, rs`         | `cc = (rd > rs) - (rd < rs)`                                                   |
 | `jmp`     | `jmp    label`          | `pc = &label`                                                                  |
 | `jne`     | `jne    label`          | `if (cc) pc = &label`                                                          |
-| `jeq`     | `je     label`          | `if (!cc) pc = &label`                                                         |
+| `jeq`     | `jeq    label`          | `if (!cc) pc = &label`                                                         |
 | `jge`     | `jge    label`          | `if (cc ≥ 0) pc = &label`                                                      |
-| `jgt`     | `jg     label`          | `if (cc > 0) pc = &label`                                                      |
+| `jgt`     | `jgt    label`          | `if (cc > 0) pc = &label`                                                      |
 | `jle`     | `jle    label`          | `if (cc ≤ 0) pc = &label`                                                      |
 | `jlt`     | `jle    label`          | `if (cc < 0) pc = &label`                                                      |
 | `call`    | `call   label`          | `lr = pc; pc = &label`                                                         |
@@ -74,3 +74,29 @@
 | `halt`    |                         |                                                                                |
 | `abort`   |                         |                                                                                |
 | `ret`     | `ret`                   | `pc = lr`                                                                      |
+
+
+
+
+In addition to the conditional jumps we've implemented, SCISA also uses the `cc` register for conditional move instructions.
+
+Each conditional move instruction has register-register and register-immediate forms.
+
+`movne rd, rs/imm`  move source operand to rd if cc != 0
+`moveq rd, rs/imm`  move source operand to rd if cc == 0
+`movge rd, rs/imm`  move source operand to rd if cc >= 0
+`movgt rd, rs/imm`  move source operand to rd if cc  > 0
+`movle rd, rs/imm`  move source operand to rd if cc <= 0
+`movlt rd, rs/imm`  move source operand to rd if cc  < 0
+
+Custom SDTypeProfiles for 
+SCISACmp
+SCISACall
+SCISARet
+SCISASelect
+
+Will I need to write a SCISAInstPrinter file?
+
+Does `brtarget` need 
+
+why is SCISACmp a SDTIntBinOp?
