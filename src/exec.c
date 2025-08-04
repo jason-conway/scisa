@@ -51,13 +51,11 @@ result_t execute(scoff_t obj, arena_t arena)
     regs[fp] = STACK_HIGH;
     regs[sp] = STACK_HIGH;
     regs[lr] = -1;
-    regs[cc] = 0;
+    regs[cc] = CC_NULL;
     regs[pc] = 0x0;
 
     scir_t *insns = obj.code;
     for (;; regs[pc]++) {
-        int32_t a = 0;
-        int32_t b = 0;
         int32_t rel = 0;
         scir_t *w = &insns[regs[pc]];
         switch (w->op) {
@@ -437,24 +435,16 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region CMP
             case op_cmpii:
-                a = w->operand.imm[0];
-                b = w->operand.imm[1];
-                regs[cc] = setcc(a, b);
+                regs[cc] = setcc(w->operand.imm[0], w->operand.imm[1]);
                 break;
             case op_cmpir:
-                a = w->operand.imm[0];
-                b = regs[w->reg[1]];
-                regs[cc] = setcc(a, b);
+                regs[cc] = setcc(w->operand.imm[0], regs[w->reg[1]]);
                 break;
             case op_cmpri:
-                a = regs[w->reg[0]];
-                b = w->operand.imm[1];
-                regs[cc] = setcc(a, b);
+                regs[cc] = setcc(regs[w->reg[0]], w->operand.imm[1]);
                 break;
             case op_cmprr:
-                a = regs[w->reg[0]];
-                b = regs[w->reg[1]];
-                regs[cc] = setcc(a, b);
+                regs[cc] = setcc(regs[w->reg[0]], regs[w->reg[1]]);
                 break;
 #pragma endregion
 #pragma region LEA
