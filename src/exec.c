@@ -18,6 +18,24 @@ static void *map_addr(scoff_t *obj, vaddr addr)
     __builtin_trap();
 }
 
+static uint32_t setcc(uint32_t u0, uint32_t u1)
+{
+    int32_t i0 = u0;
+    int32_t i1 = u1;
+    uint32_t r = CC_NULL;
+    r |= (u0 == u1) ? CC_EQ : CC_NULL;
+    r |= (u0 != u1) ? CC_NE : CC_NULL;
+    r |= (i0  < i1) ? CC_LT : CC_NULL;
+    r |= (i0 >= i1) ? CC_GE : CC_NULL;
+    r |= (i0 <= i1) ? CC_LE : CC_NULL;
+    r |= (i0  > i1) ? CC_GT : CC_NULL;
+    r |= (u0  < u1) ? CC_LO : CC_NULL;
+    r |= (u0 >= u1) ? CC_HS : CC_NULL;
+    r |= (u0 <= u1) ? CC_LS : CC_NULL;
+    r |= (u0  > u1) ? CC_HI : CC_NULL;
+    return r;
+}
+
 result_t execute(scoff_t obj, arena_t arena)
 {
     result_t r = { 0 };
@@ -263,72 +281,120 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region MOVNE
             case op_movneri:
-                if (regs[cc]) {
+                if (regs[cc] & CC_NE) {
                     regs[w->reg[0]] = w->operand.imm[1];
                 }
                 break;
             case op_movnerr:
-                if (regs[cc]) {
+                if (regs[cc] & CC_NE) {
                     regs[w->reg[0]] = regs[w->reg[1]];
                 }
                 break;
 #pragma endregion
 #pragma region MOVEQ
             case op_moveqri:
-                if (!regs[cc]) {
+                if (regs[cc] & CC_EQ) {
                     regs[w->reg[0]] = w->operand.imm[1];
                 }
                 break;
             case op_moveqrr:
-                if (!regs[cc]) {
+                if (regs[cc] & CC_EQ) {
                     regs[w->reg[0]] = regs[w->reg[1]];
                 }
                 break;
 #pragma endregion
 #pragma region MOVGE
             case op_movgeri:
-                if (regs[cc] >= 0) {
+                if (regs[cc] & CC_GE) {
                     regs[w->reg[0]] = w->operand.imm[1];
                 }
                 break;
             case op_movgerr:
-                if (regs[cc] >= 0) {
+                if (regs[cc] & CC_GE) {
                     regs[w->reg[0]] = regs[w->reg[1]];
                 }
                 break;
 #pragma endregion
 #pragma region MOVGT
             case op_movgtri:
-                if (regs[cc] > 0) {
+                if (regs[cc] & CC_GT) {
                     regs[w->reg[0]] = w->operand.imm[1];
                 }
                 break;
             case op_movgtrr:
-                if (regs[cc] > 0) {
+                if (regs[cc] & CC_GT) {
                     regs[w->reg[0]] = regs[w->reg[1]];
                 }
                 break;
 #pragma endregion
 #pragma region MOVLE
             case op_movleri:
-                if (regs[cc] <= 0) {
+                if (regs[cc] & CC_LE) {
                     regs[w->reg[0]] = w->operand.imm[1];
                 }
                 break;
             case op_movlerr:
-                if (regs[cc] <= 0) {
+                if (regs[cc] & CC_LE) {
                     regs[w->reg[0]] = regs[w->reg[1]];
                 }
                 break;
 #pragma endregion
 #pragma region MOVLT
             case op_movltri:
-                if (regs[cc] < 0) {
+                if (regs[cc] & CC_LT) {
                     regs[w->reg[0]] = w->operand.imm[1];
                 }
                 break;
             case op_movltrr:
-                if (regs[cc] < 0) {
+                if (regs[cc] & CC_LT) {
+                    regs[w->reg[0]] = regs[w->reg[1]];
+                }
+                break;
+#pragma endregion
+#pragma region MOVHS
+            case op_movhsri:
+                if (regs[cc] & CC_HS) {
+                    regs[w->reg[0]] = w->operand.imm[1];
+                }
+                break;
+            case op_movhsrr:
+                if (regs[cc] & CC_HS) {
+                    regs[w->reg[0]] = regs[w->reg[1]];
+                }
+                break;
+#pragma endregion
+#pragma region MOVHI
+            case op_movhiri:
+                if (regs[cc] & CC_HI) {
+                    regs[w->reg[0]] = w->operand.imm[1];
+                }
+                break;
+            case op_movhirr:
+                if (regs[cc] & CC_HI) {
+                    regs[w->reg[0]] = regs[w->reg[1]];
+                }
+                break;
+#pragma endregion
+#pragma region MOVLS
+            case op_movlsri:
+                if (regs[cc] & CC_LS) {
+                    regs[w->reg[0]] = w->operand.imm[1];
+                }
+                break;
+            case op_movlsrr:
+                if (regs[cc] & CC_LS) {
+                    regs[w->reg[0]] = regs[w->reg[1]];
+                }
+                break;
+#pragma endregion
+#pragma region MOVLO
+            case op_movlori:
+                if (regs[cc] & CC_LO) {
+                    regs[w->reg[0]] = w->operand.imm[1];
+                }
+                break;
+            case op_movlorr:
+                if (regs[cc] & CC_LO) {
                     regs[w->reg[0]] = regs[w->reg[1]];
                 }
                 break;
@@ -373,22 +439,22 @@ result_t execute(scoff_t obj, arena_t arena)
             case op_cmpii:
                 a = w->operand.imm[0];
                 b = w->operand.imm[1];
-                regs[cc] = (a > b) - (a < b);
+                regs[cc] = setcc(a, b);
                 break;
             case op_cmpir:
                 a = w->operand.imm[0];
                 b = regs[w->reg[1]];
-                regs[cc] = (a > b) - (a < b);
+                regs[cc] = setcc(a, b);
                 break;
             case op_cmpri:
                 a = regs[w->reg[0]];
                 b = w->operand.imm[1];
-                regs[cc] = (a > b) - (a < b);
+                regs[cc] = setcc(a, b);
                 break;
             case op_cmprr:
                 a = regs[w->reg[0]];
                 b = regs[w->reg[1]];
-                regs[cc] = (a > b) - (a < b);
+                regs[cc] = setcc(a, b);
                 break;
 #pragma endregion
 #pragma region LEA
@@ -413,42 +479,70 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region JNE
             case op_jne:
-                if (regs[cc]) {
+                if (regs[cc] & CC_NE) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
 #pragma region JEQ
             case op_jeq:
-                if (!regs[cc]) {
+                if (regs[cc] & CC_EQ) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
 #pragma region JGE
             case op_jge:
-                if (regs[cc] >= 0) {
+                if (regs[cc] & CC_GE) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
 #pragma region JGT
             case op_jgt:
-                if (regs[cc] > 0) {
+                if (regs[cc] & CC_GT) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
 #pragma region JLE
             case op_jle:
-                if (regs[cc] <= 0) {
+                if (regs[cc] & CC_LE) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
 #pragma region JLT
             case op_jlt:
-                if (regs[cc] < 0) {
+                if (regs[cc] & CC_LT) {
+                    regs[pc] = w->operand.addr - 1;
+                }
+                break;
+#pragma endregion
+#pragma region JHS
+            case op_jhs:
+                if (regs[cc] & CC_HS) {
+                    regs[pc] = w->operand.addr - 1;
+                }
+                break;
+#pragma endregion
+#pragma region JHI
+            case op_jhi:
+                if (regs[cc] & CC_HI) {
+                    regs[pc] = w->operand.addr - 1;
+                }
+                break;
+#pragma endregion
+#pragma region JLS
+            case op_jls:
+                if (regs[cc] & CC_LS) {
+                    regs[pc] = w->operand.addr - 1;
+                }
+                break;
+#pragma endregion
+#pragma region JLO
+            case op_jlo:
+                if (regs[cc] & CC_LO) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;

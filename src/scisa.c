@@ -360,6 +360,10 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
         case m_movgt:
         case m_movle:
         case m_movlt:
+        case m_movhs:
+        case m_movhi:
+        case m_movls:
+        case m_movlo:
             // op will start as imm variant of `m`
             n->op = op_movri + 2 * (m - m_mov);
 
@@ -693,6 +697,10 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
         case m_jgt:
         case m_jle:
         case m_jlt:
+        case m_jhs:
+        case m_jhi:
+        case m_jls:
+        case m_jlo:
         case m_call:
             // Single label operand
             t = lex(t.data);
@@ -964,6 +972,10 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_movgtri:
             case op_movleri:
             case op_movltri:
+            case op_movhsri:
+            case op_movhiri:
+            case op_movlsri:
+            case op_movlori:
             case op_ldrri:
             case op_strri:
             case op_cmpri:
@@ -990,6 +1002,10 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_movgtrr:
             case op_movlerr:
             case op_movltrr:
+            case op_movhsrr:
+            case op_movhirr:
+            case op_movlsrr:
+            case op_movlorr:
             case op_ldrrr:
             case op_strrr:
             case op_cmprr:
@@ -1039,6 +1055,10 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_jgt:
             case op_jle:
             case op_jlt:
+            case op_jhs:
+            case op_jhi:
+            case op_jls:
+            case op_jlo:
             case op_call:
                 code[i].operand.addr = n->addr;
                 break;

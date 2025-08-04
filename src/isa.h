@@ -48,6 +48,14 @@
     movlerr, \
     movltri, \
     movltrr, \
+    movhsri, \
+    movhsrr, \
+    movhiri, \
+    movhirr, \
+    movlsri, \
+    movlsrr, \
+    movlori, \
+    movlorr, \
     ldrri,   \
     ldrrr,   \
     ldrrir,  \
@@ -70,6 +78,10 @@
     jgt,     \
     jle,     \
     jlt,     \
+    jhs,     \
+    jhi,     \
+    jls,     \
+    jlo,     \
     call,    \
     ret,     \
     msg,     \
@@ -105,6 +117,10 @@
     movgt,  \
     movle,  \
     movlt,  \
+    movhs,  \
+    movhi,  \
+    movls,  \
+    movlo,  \
     ldr,    \
     str,    \
     lea,    \
@@ -116,6 +132,10 @@
     jgt,    \
     jle,    \
     jlt,    \
+    jhs,    \
+    jhi,    \
+    jls,    \
+    jlo,    \
     call,   \
     msg,
 #pragma endregion
