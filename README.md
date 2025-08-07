@@ -59,7 +59,7 @@ to be small without being constraining. Instructions are being added as needed.
 | `asr`    | `reg, reg/imm`     | `(signed)rd >>= rs/imm & mask`      |
 | `inc`    | `reg`              | `rd++`                              |
 | `dec`    | `reg`              | `rd--`                              |
-| `cmp`    | `reg/imm, reg/imm` | `cc = (rd > rs) - (rd < rs)`        |
+| `cmp`    | `reg/imm, reg/imm` | see section on  `cmp`               |
 
 #### Notes
 
@@ -70,18 +70,22 @@ to be small without being constraining. Instructions are being added as needed.
 
 ### Control Flow Instructions
 
-| Mnemonic | Operands | Operation                 |
-| -------- | -------- | ------------------------- |
-| `jmp`    | `label`  | `pc = &label`             |
-| `jne`    | `label`  | `if (cc) pc = &label`     |
-| `jeq`    | `label`  | `if (!cc) pc = &label`    |
-| `jge`    | `label`  | `if (cc ≥ 0) pc = &label` |
-| `jgt`    | `label`  | `if (cc > 0) pc = &label` |
-| `jle`    | `label`  | `if (cc ≤ 0) pc = &label` |
-| `jlt`    | `label`  | `if (cc < 0) pc = &label` |
-| `call`   | `label`  | `lr = pc; pc = &label`    |
-| `ret`    |          | `pc = lr`                 |
-| `halt`   |          | `halt successfully`       |
+| Mnemonic | Operands | Operation                     |
+| -------- | -------- | ----------------------------- |
+| `jmp`    | `label`  | `pc = &label`                 |
+| `jne`    | `label`  | `if (cc & CC_NE) pc = &label` |
+| `jeq`    | `label`  | `if (cc & CC_EQ) pc = &label` |
+| `jge`    | `label`  | `if (cc & CC_GE) pc = &label` |
+| `jgt`    | `label`  | `if (cc & CC_GT) pc = &label` |
+| `jle`    | `label`  | `if (cc & CC_LE) pc = &label` |
+| `jlt`    | `label`  | `if (cc & CC_LT) pc = &label` |
+| `jhs`    | `label`  | `if (cc & CC_HS) pc = &label` |
+| `jhi`    | `label`  | `if (cc & CC_HI) pc = &label` |
+| `jls`    | `label`  | `if (cc & CC_LS) pc = &label` |
+| `jlo`    | `label`  | `if (cc & CC_LO) pc = &label` |
+| `call`   | `label`  | `lr = pc; pc = &label`        |
+| `ret`    |          | `pc = lr`                     |
+| `halt`   |          | `halt successfully`           |
 
 #### Notes
 
@@ -92,12 +96,16 @@ to be small without being constraining. Instructions are being added as needed.
 | Mnemonic | Operands                    | Operation                       |
 | -------- | --------------------------- | ------------------------------- |
 | `mov`    | `reg, reg/imm`              | `rd = rs/imm`                   |
-| `movne`  | `reg, reg/imm`              | `if (cc) rd = rs/imm`           |
-| `moveq`  | `reg, reg/imm`              | `if (!cc) rd = rs/imm`          |
-| `movge`  | `reg, reg/imm`              | `if (cc ≥ 0) rd = rs/imm`       |
-| `movgt`  | `reg, reg/imm`              | `if (cc > 0) rd = rs/imm`       |
-| `movle`  | `reg, reg/imm`              | `if (cc ≤ 0) rd = rs/imm`       |
-| `movlt`  | `reg, reg/imm`              | `if (cc < 0) rd = rs/imm`       |
+| `movne`  | `reg, reg/imm`              | `if (cc & CC_NE) rd = rs/imm`   |
+| `moveq`  | `reg, reg/imm`              | `if (cc & CC_EQ) rd = rs/imm`   |
+| `movge`  | `reg, reg/imm`              | `if (cc & CC_GE) rd = rs/imm`   |
+| `movgt`  | `reg, reg/imm`              | `if (cc & CC_GT) rd = rs/imm`   |
+| `movle`  | `reg, reg/imm`              | `if (cc & CC_LE) rd = rs/imm`   |
+| `movlt`  | `reg, reg/imm`              | `if (cc & CC_LT) rd = rs/imm`   |
+| `movhs`  | `reg, reg/imm`              | `if (cc & CC_HS) rd = rs/imm`   |
+| `movhi`  | `reg, reg/imm`              | `if (cc & CC_HI) rd = rs/imm`   |
+| `movls`  | `reg, reg/imm`              | `if (cc & CC_LS) rd = rs/imm`   |
+| `movlo`  | `reg, reg/imm`              | `if (cc & CC_LO) rd = rs/imm`   |
 | `push`   | `reg`                       | `sp -= 4; *sp = rs`             |
 | `pop`    | `reg`                       | `rd = *sp; sp += 4`             |
 | `ldr`    | `reg, reg/imm/imm(reg)`     | `rd = *rs/*imm/*(imm + rs)`     |
@@ -234,23 +242,26 @@ pop r5  ; ldr r5, sp
 
 ### `cmp`
 
-`cmp` variations:
+`cmp` uses the following symantics to set the `cc` register:
 
-```asm
-; r4 = 5
-; r5 = 10
-cmp r4, r5 ; cc = -1
-cmp r4, 10 ; cc = -1
-cmp 5, r5  ; cc = -1
-cmp 5, 10  ; cc = -1
-```
-
-#### `cc` register
-
-```asm
-cmp 1, 0 ; cc = -1
-cmp 0, 0 ; cc =  0
-cmp 0, 1 ; cc =  1
+```c
+uint32_t setcc(uint32_t u0, uint32_t u1)
+{
+    int32_t i0 = u0;
+    int32_t i1 = u1;
+    uint32_t r = CC_NULL;
+    r |= (u0 != u1) ? CC_NE : CC_NULL;
+    r |= (u0 == u1) ? CC_EQ : CC_NULL;
+    r |= (i0 >= i1) ? CC_GE : CC_NULL;
+    r |= (i0  > i1) ? CC_GT : CC_NULL;
+    r |= (i0 <= i1) ? CC_LE : CC_NULL;
+    r |= (i0  < i1) ? CC_LT : CC_NULL;
+    r |= (u0 >= u1) ? CC_HS : CC_NULL;
+    r |= (u0  > u1) ? CC_HI : CC_NULL;
+    r |= (u0 <= u1) ? CC_LS : CC_NULL;
+    r |= (u0  < u1) ? CC_LO : CC_NULL;
+    return r;
+}
 ```
 
 ### Directives
