@@ -162,16 +162,16 @@ typedef struct arena_t {
 
 typedef enum cc_t {
     CC_NULL,
-    CC_EQ = 1u << 0,
-    CC_NE = 1u << 1,
-    CC_LT = 1u << 2,
-    CC_GE = 1u << 3,
-    CC_GT = 1u << 4,
-    CC_LE = 1u << 5,
-    CC_LO = 1u << 6, // unsigned LT
-    CC_HS = 1u << 7, // unsigned GE
-    CC_HI = 1u << 8, // unsigned GT
-    CC_LS = 1u << 9, // unsigned LE
+    CC_NE = 1u << 0,
+    CC_EQ = 1u << 1,
+    CC_GE = 1u << 2, // signed GE
+    CC_GT = 1u << 3, // signed GT
+    CC_LE = 1u << 4, // signed LE
+    CC_LT = 1u << 5, // signed LT
+    CC_HS = 1u << 6, // unsigned GE
+    CC_HI = 1u << 7, // unsigned GT
+    CC_LS = 1u << 8, // unsigned LE
+    CC_LO = 1u << 9, // unsigned LT
 } cc_t;
 
 void *__alloc(arena_t *a, size_t objsize, size_t align, size_t count);

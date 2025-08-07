@@ -23,16 +23,16 @@ static uint32_t setcc(uint32_t u0, uint32_t u1)
     int32_t i0 = u0;
     int32_t i1 = u1;
     uint32_t r = CC_NULL;
-    r |= (u0 == u1) ? CC_EQ : CC_NULL;
     r |= (u0 != u1) ? CC_NE : CC_NULL;
-    r |= (i0  < i1) ? CC_LT : CC_NULL;
+    r |= (u0 == u1) ? CC_EQ : CC_NULL;
     r |= (i0 >= i1) ? CC_GE : CC_NULL;
-    r |= (i0 <= i1) ? CC_LE : CC_NULL;
     r |= (i0  > i1) ? CC_GT : CC_NULL;
-    r |= (u0  < u1) ? CC_LO : CC_NULL;
+    r |= (i0 <= i1) ? CC_LE : CC_NULL;
+    r |= (i0  < i1) ? CC_LT : CC_NULL;
     r |= (u0 >= u1) ? CC_HS : CC_NULL;
-    r |= (u0 <= u1) ? CC_LS : CC_NULL;
     r |= (u0  > u1) ? CC_HI : CC_NULL;
+    r |= (u0 <= u1) ? CC_LS : CC_NULL;
+    r |= (u0  < u1) ? CC_LO : CC_NULL;
     return r;
 }
 
