@@ -7,6 +7,44 @@ enum cfg {
     DATA_LOW = 0x10000000,
 };
 
+static size_t ldst_sz(opcode_t op)
+{
+    switch (op) {
+        default:
+            __builtin_trap();
+        case op_ldbri:
+        case op_ldbrr:
+        case op_ldbrir:
+        case op_stbii:
+        case op_stbir:
+        case op_stbiir:
+        case op_stbri:
+        case op_stbrr:
+        case op_stbrir:
+            return 1;
+        case op_ldhri:
+        case op_ldhrr:
+        case op_ldhrir:
+        case op_sthii:
+        case op_sthir:
+        case op_sthiir:
+        case op_sthri:
+        case op_sthrr:
+        case op_sthrir:
+            return 2;
+        case op_ldwri:
+        case op_ldwrr:
+        case op_ldwrir:
+        case op_stwii:
+        case op_stwir:
+        case op_stwiir:
+        case op_stwri:
+        case op_stwrr:
+        case op_stwrir:
+            return 4;
+    }
+}
+
 static void *map_addr(scoff_t *obj, vaddr addr)
 {
     if (likely((vaddr)(addr - STACK_LOW) < obj->stack.size)) {
@@ -397,40 +435,58 @@ result_t execute(scoff_t obj, arena_t arena)
                 }
                 break;
 #pragma endregion
-#pragma region LDR
-            case op_ldrri:
-                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, w->operand.imm[1]), sizeof(uint32_t));
+#pragma region LDW
+            case op_ldbri:
+            case op_ldhri:
+            case op_ldwri:
+                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, w->operand.imm[1]), ldst_sz(w->op));
                 break;
-            case op_ldrrr:
-                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, regs[w->reg[1]]), sizeof(uint32_t));
+            case op_ldbrr:
+            case op_ldhrr:
+            case op_ldwrr:
+                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, regs[w->reg[1]]), ldst_sz(w->op));
                 break;
-            case op_ldrrir:
+            case op_ldbrir:
+            case op_ldhrir:
+            case op_ldwrir:
                 rel = regs[w->reg[1]] + w->operand.imm[1];
-                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, rel), sizeof(uint32_t));
+                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, rel), ldst_sz(w->op));
                 break;
 #pragma endregion
-#pragma region STRIx
-            case op_strii:
-                __builtin_memcpy(map_addr(&obj, w->operand.imm[1]), &w->operand.imm[0], sizeof(uint32_t));
+#pragma region STWIx
+            case op_stbii:
+            case op_sthii:
+            case op_stwii:
+                __builtin_memcpy(map_addr(&obj, w->operand.imm[1]), &w->operand.imm[0], ldst_sz(w->op));
                 break;
-            case op_strir:
-                __builtin_memcpy(map_addr(&obj, regs[w->reg[1]]), &w->operand.imm[0], sizeof(uint32_t));
+            case op_stbir:
+            case op_sthir:
+            case op_stwir:
+                __builtin_memcpy(map_addr(&obj, regs[w->reg[1]]), &w->operand.imm[0], ldst_sz(w->op));
                 break;
-            case op_striir:
+            case op_stbiir:
+            case op_sthiir:
+            case op_stwiir:
                 rel = regs[w->reg[1]] + w->operand.imm[1];
-                __builtin_memcpy(map_addr(&obj, rel), &w->operand.imm[0], sizeof(uint32_t));
+                __builtin_memcpy(map_addr(&obj, rel), &w->operand.imm[0], ldst_sz(w->op));
                 break;
 #pragma endregion
-#pragma region STRRx
-            case op_strri:
-                __builtin_memcpy(map_addr(&obj, w->operand.imm[1]), &regs[w->reg[0]], sizeof(uint32_t));
+#pragma region STWRx
+            case op_stbri:
+            case op_sthri:
+            case op_stwri:
+                __builtin_memcpy(map_addr(&obj, w->operand.imm[1]), &regs[w->reg[0]], ldst_sz(w->op));
                 break;
-            case op_strrr:
-                __builtin_memcpy(map_addr(&obj, regs[w->reg[1]]), &regs[w->reg[0]], sizeof(uint32_t));
+            case op_stbrr:
+            case op_sthrr:
+            case op_stwrr:
+                __builtin_memcpy(map_addr(&obj, regs[w->reg[1]]), &regs[w->reg[0]], ldst_sz(w->op));
                 break;
-            case op_strrir:
+            case op_stbrir:
+            case op_sthrir:
+            case op_stwrir:
                 rel = regs[w->reg[1]] + w->operand.imm[1];
-                __builtin_memcpy(map_addr(&obj, rel), &regs[w->reg[0]], sizeof(uint32_t));
+                __builtin_memcpy(map_addr(&obj, rel), &regs[w->reg[0]], ldst_sz(w->op));
                 break;
 #pragma endregion
 #pragma region CMP

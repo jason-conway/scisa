@@ -407,9 +407,11 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     return NULL;
             }
             break;
-#pragma region m_ldr
-        case m_ldr:
-            n->op = op_ldrri; // [0] reg imm
+#pragma region m_ldw
+        case m_ldb:
+        case m_ldh:
+        case m_ldw:
+            n->op = op_ldbri + 3 * (m - m_ldb);
             t = lex(t.data);
             switch (t.type) {
                 case tok_register:
@@ -491,18 +493,20 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
             break;
 #pragma endregion
 #pragma region m_str
-        case m_str:
+        case m_stb:
+        case m_sth:
+        case m_stw:
+            n->op = op_stbii + 6 * (m - m_stb);
             t = lex(t.data);
             switch (t.type) {
                 case tok_register:
-                    n->op = op_strri; // reg imm
+                    n->op += 3; // offset stWii to stWri
                     if (!str_reg(&reg, t.token)) {
                         return NULL;
                     }
                     n->reg[0] = reg;
                     break;
                 case tok_integer:
-                    n->op = op_strii; // imm imm
                     if (!str_i32(&imm, t.token)) {
                         return NULL;
                     }
@@ -523,7 +527,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
             t = lex(t.data);
             switch (t.type) {
                 case tok_register:
-                    n->op++; // op_strXr
+                    n->op++; // offset stWDi to stWDr
                     if (!str_reg(&reg, t.token)) {
                         return NULL;
                     }
@@ -548,7 +552,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     t = lex(t.data);
                     switch (t.type) {
                         case tok_register:
-                            n->op += 2; // op_strXir
+                            n->op += 2; // offset stWDi to op_stWDir
                             if (!str_reg(&reg, t.token)) {
                                 return NULL;
                             }
@@ -976,8 +980,12 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_movhiri:
             case op_movlsri:
             case op_movlori:
-            case op_ldrri:
-            case op_strri:
+            case op_ldbri:
+            case op_ldhri:
+            case op_ldwri:
+            case op_stbri:
+            case op_sthri:
+            case op_stwri:
             case op_cmpri:
                 code[i].reg[0] = n->reg[0];
                 code[i].operand.imm[1] = n->imm[1];
@@ -1006,8 +1014,12 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_movhirr:
             case op_movlsrr:
             case op_movlorr:
-            case op_ldrrr:
-            case op_strrr:
+            case op_ldbrr:
+            case op_ldhrr:
+            case op_ldwrr:
+            case op_stbrr:
+            case op_sthrr:
+            case op_stwrr:
             case op_cmprr:
                 code[i].reg[0] = n->reg[0];
                 code[i].reg[1] = n->reg[1];
@@ -1020,8 +1032,12 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
                 code[i].operand.imm[0] = n->imm[0];
                 code[i].operand.imm[1] = n->imm[1];
                 break;
-            case op_ldrrir:
-            case op_strrir:
+            case op_ldbrir:
+            case op_ldhrir:
+            case op_ldwrir:
+            case op_stbrir:
+            case op_sthrir:
+            case op_stwrir:
                 code[i].reg[0] = n->reg[0];
                 code[i].operand.imm[1] = n->imm[1];
                 code[i].reg[1] = n->reg[1];
@@ -1035,15 +1051,21 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
                 code[i].reg[0] = n->reg[0];
                 code[i].operand.addr = n->addr;
                 break;
-            case op_strii:
+            case op_stbii:
+            case op_sthii:
+            case op_stwii:
                 code[i].operand.imm[0] = n->imm[0];
                 code[i].operand.imm[1] = n->imm[1];
                 break;
-            case op_strir:
+            case op_stbir:
+            case op_sthir:
+            case op_stwir:
                 code[i].operand.imm[0] = n->imm[0];
                 code[i].reg[1] = n->reg[1];
                 break;
-            case op_striir:
+            case op_stbiir:
+            case op_sthiir:
+            case op_stwiir:
                 code[i].operand.imm[0] = n->imm[0];
                 code[i].operand.imm[1] = n->imm[1];
                 code[i].reg[1] = n->reg[1];

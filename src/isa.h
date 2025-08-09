@@ -56,15 +56,33 @@
     movlsrr, \
     movlori, \
     movlorr, \
-    ldrri,   \
-    ldrrr,   \
-    ldrrir,  \
-    strii,   \
-    strir,   \
-    striir,  \
-    strri,   \
-    strrr,   \
-    strrir,  \
+    ldbri,   \
+    ldbrr,   \
+    ldbrir,  \
+    ldhri,   \
+    ldhrr,   \
+    ldhrir,  \
+    ldwri,   \
+    ldwrr,   \
+    ldwrir,  \
+    stbii,   \
+    stbir,   \
+    stbiir,  \
+    stbri,   \
+    stbrr,   \
+    stbrir,  \
+    sthii,   \
+    sthir,   \
+    sthiir,  \
+    sthri,   \
+    sthrr,   \
+    sthrir,  \
+    stwii,   \
+    stwir,   \
+    stwiir,  \
+    stwri,   \
+    stwrr,   \
+    stwrir,  \
     learl,   \
     learil,  \
     cmpii,   \
@@ -121,8 +139,12 @@
     movhi,  \
     movls,  \
     movlo,  \
-    ldr,    \
-    str,    \
+    ldb,    \
+    ldh,    \
+    ldw,    \
+    stb,    \
+    sth,    \
+    stw,    \
     lea,    \
     cmp,    \
     jmp,    \
