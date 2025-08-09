@@ -12,20 +12,20 @@ c5: .zero 128
 .text
 main:
     lea r0, c1
-    ldr r1, r0
+    ldw r1, r0
     msg 'c1: ', r1, ' @ ', r0, '\n'
     
     lea r0, c2
-    ldr r1, r0
+    ldw r1, r0
     msg 'c2: ', r1, ' @ ', r0, '\n'
 
     lea r0, c3
-    ldr r1, r0
+    ldw r1, r0
     ;and r1, 0xff
     msg 'c3: ', r1, ' @ ', r0, '\n'
 
     lea r0, c4
-    ldr r1, r0
+    ldw r1, r0
     ;and r1, 0xff
     msg 'c4: ', r1, ' @ ', r0, '\n'
 

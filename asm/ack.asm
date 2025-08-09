@@ -5,19 +5,19 @@ main:
 
     mov     r31, sp
     add     r31, 40
-    str     r18, r31
+    stw     r18, r31
 
     mov     r31, sp
     add     r31, 40
-    str     r17, r31
+    stw     r17, r31
 
     mov     r31, sp
     add     r31, 44
-    str     lr,  r31
+    stw     lr,  r31
 
     mov     r31, sp
     add     r31, 32
-    str     r16, r31
+    stw     r16, r31
 
     mov     r17, 17 ; 6
     mov     r18, 4  ; 5
@@ -29,21 +29,21 @@ l16:
 l17:
     mov     r31, sp
     add     r31, 28
-    str     r5,  r31
+    stw     r5,  r31
 
     mov     r31, sp
     add     r31, 24
-    str     r4,  r31
+    stw     r4,  r31
 
     call    exec
 
     mov     r31, sp
     add     r31, 28
-    ldr     r5,  r31
+    ldw     r5,  r31
 
     mov     r31, sp
     add     r31, 24
-    ldr     r4,  r31
+    ldw     r4,  r31
 
     inc     r5
     cmp     r16, r5
@@ -54,19 +54,19 @@ l17:
 
     mov     r31, sp
     add     r31, 44
-    ldr     lr, r31
+    ldw     lr, r31
 
     mov     r31, sp
     add     r31, 40
-    ldr     r18, r31
+    ldw     r18, r31
 
     mov     r31, sp
     add     r31, 36
-    ldr     r17, r31
+    ldw     r17, r31
 
     mov     r31, sp
     add     r31, 32
-    ldr     r16, r31
+    ldw     r16, r31
 
     mov     r2, r0
     add     sp, 48
@@ -100,11 +100,11 @@ l11:
 l7:
     mov     r31, sp
     add     r31, 28
-    ldr     lr,  r31
+    ldw     lr,  r31
 
     mov     r31, sp
     add     r31, 24
-    ldr     r16, r31
+    ldw     r16, r31
 
     mov     r2, r5
     inc     r2
@@ -117,11 +117,11 @@ l12:
 
     mov     r31, sp
     add     r31, 28
-    str     lr,  r31
+    stw     lr,  r31
 
     mov     r31, sp
     add     r31, 24
-    str     r16, r31
+    stw     r16, r31
     jmp     l11
 
 exec:
@@ -131,13 +131,13 @@ exec:
 
     mov     r31, sp
     add     r31, 28
-    str     lr, r31
+    stw     lr, r31
 
     call     ackermann
 
     mov     r31, sp
     add     r31, 28
-    ldr     lr, r31
+    ldw     lr, r31
 
     mov     r6, r2
     mov     r5, r7

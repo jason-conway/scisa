@@ -3,10 +3,10 @@ main:
     sub     sp, 48
     mov     r4, r0
 
-    str     r18, 40(sp)
-    str     r17, 36(sp)
-    str     lr,  44(sp)
-    str     r16, 32(sp)
+    stw     r18, 40(sp)
+    stw     r17, 36(sp)
+    stw     lr,  44(sp)
+    stw     r16, 32(sp)
 
     mov     r17, 6
     mov     r18, 5
@@ -16,13 +16,13 @@ l16:
     sub     r16, r4
 
 l17:
-    str     r5, 28(sp)
-    str     r4, 24(sp)
+    stw     r5, 28(sp)
+    stw     r4, 24(sp)
 
     call    exec
 
-    ldr     r5, 28(sp)
-    ldr     r4, 24(sp)
+    ldw     r5, 28(sp)
+    ldw     r4, 24(sp)
 
     inc     r5
     cmp     r16, r5
@@ -31,10 +31,10 @@ l17:
     cmp     r4, r18
     jne     l16
 
-    ldr     lr,  44(sp)
-    ldr     r18, 40(sp)
-    ldr     r17, 36(sp)
-    ldr     r16, 32(sp)
+    ldw     lr,  44(sp)
+    ldw     r18, 40(sp)
+    ldw     r17, 36(sp)
+    ldw     r16, 32(sp)
 
     mov     r2, r0
     add     sp, 48
@@ -66,8 +66,8 @@ l11:
     mov     r5, r2
     jmp     l4
 l7:
-    ldr     lr,  28(sp)
-    ldr     r16, 24(sp)
+    ldw     lr,  28(sp)
+    ldw     r16, 24(sp)
 
     mov     r2, r5
     inc     r2
@@ -77,8 +77,8 @@ l7:
 
 l12:
     sub     sp,  32
-    str     lr,  28(sp)
-    str     r16, 24(sp)
+    stw     lr,  28(sp)
+    stw     r16, 24(sp)
     jmp     l11
 
 exec:
@@ -86,11 +86,11 @@ exec:
     mov     r3, r4
     mov     r7, r5
 
-    str     lr, 28(sp)
+    stw     lr, 28(sp)
 
     call     ackermann
 
-    ldr     lr, 28(sp)
+    ldw     lr, 28(sp)
 
     mov     r6, r2
     mov     r5, r7
