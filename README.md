@@ -125,9 +125,11 @@ to be small without being constraining. Instructions are being added as needed.
 
 ### String and Output Instructions
 
-| Mnemonic | Operands       | Operation                 |
-| -------- | -------------- | ------------------------- |
-| msg      | string, reg, * | print arguments to stdout |
+| Mnemonic | Operands         | Operation                                |
+| -------- | ---------------- | ---------------------------------------- |
+| `msg`    | `string, reg, *` | print arguments to stdout                |
+| `out`    | `reg, reg/imm`   | write `rs/imm` bytes from `rd` to stdout |
+
 
 ## Syntax
 
