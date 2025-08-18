@@ -435,6 +435,14 @@ result_t execute(scoff_t obj, arena_t arena)
                 }
                 break;
 #pragma endregion
+#pragma region OUT
+            case op_outri:
+                print_str(&r.out, str_from(map_addr(&obj, regs[w->reg[0]]), w->operand.imm[1]));
+                break;
+            case op_outrr:
+                print_str(&r.out, str_from(map_addr(&obj, regs[w->reg[0]]), regs[w->reg[1]]));
+                break;
+#pragma endregion
 #pragma region LDW
             case op_ldbri:
             case op_ldhri:

@@ -56,6 +56,8 @@
     movlsrr, \
     movlori, \
     movlorr, \
+    outri,   \
+    outrr,   \
     ldbri,   \
     ldbrr,   \
     ldbrir,  \
@@ -139,6 +141,7 @@
     movhi,  \
     movls,  \
     movlo,  \
+    out,    \
     ldb,    \
     ldh,    \
     ldw,    \

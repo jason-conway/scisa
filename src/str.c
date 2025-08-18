@@ -8,6 +8,14 @@ str_t str_span(uint8_t *head, uint8_t *tail)
     };
 }
 
+str_t str_from(uint8_t *head, int64_t len)
+{
+    return (str_t) {
+        .data = head,
+        .len = len
+    };
+}
+
 bool str_equal(str_t s1, str_t s2)
 {
     if (s1.len != s2.len) {
