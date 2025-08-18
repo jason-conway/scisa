@@ -6,7 +6,7 @@ main:
     msg 'loaded lstrsz address into r1\n'
     ldw r2, r1
     msg '*lstrsz: ', r2, '\n'
-    ldb r10, r0
+    ldub r10, r0
     msg '*r0: ', r10, '\n'
     out r0, r2
     msg '\n'

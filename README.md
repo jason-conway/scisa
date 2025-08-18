@@ -40,7 +40,7 @@ The data segment is dynamically sized, with a base address of `0x10000000`.
 `scisa` implements a sweet (and condensed) set of instructions. The ISA intends
 to be small without being constraining. Instructions are being added as needed.
 
-### Arithmetic and Logic Instructions
+### Arithmetic and Logic Instructions (Unary)
 
 | Mnemonic | Operands           | Operation                           |
 | -------- | ------------------ | ----------------------------------- |
@@ -93,24 +93,28 @@ to be small without being constraining. Instructions are being added as needed.
 
 ### Data Handling and Memory Instructions
 
-| Mnemonic | Operands                    | Operation                       |
-| -------- | --------------------------- | ------------------------------- |
-| `mov`    | `reg, reg/imm`              | `rd = rs/imm`                   |
-| `movne`  | `reg, reg/imm`              | `if (cc & CC_NE) rd = rs/imm`   |
-| `moveq`  | `reg, reg/imm`              | `if (cc & CC_EQ) rd = rs/imm`   |
-| `movge`  | `reg, reg/imm`              | `if (cc & CC_GE) rd = rs/imm`   |
-| `movgt`  | `reg, reg/imm`              | `if (cc & CC_GT) rd = rs/imm`   |
-| `movle`  | `reg, reg/imm`              | `if (cc & CC_LE) rd = rs/imm`   |
-| `movlt`  | `reg, reg/imm`              | `if (cc & CC_LT) rd = rs/imm`   |
-| `movhs`  | `reg, reg/imm`              | `if (cc & CC_HS) rd = rs/imm`   |
-| `movhi`  | `reg, reg/imm`              | `if (cc & CC_HI) rd = rs/imm`   |
-| `movls`  | `reg, reg/imm`              | `if (cc & CC_LS) rd = rs/imm`   |
-| `movlo`  | `reg, reg/imm`              | `if (cc & CC_LO) rd = rs/imm`   |
-| `push`   | `reg`                       | `sp -= 4; *sp = rs`             |
-| `pop`    | `reg`                       | `rd = *sp; sp += 4`             |
-| `ldr`    | `reg, reg/imm/imm(reg)`     | `rd = *rs/*imm/*(imm + rs)`     |
-| `str`    | `reg/imm, reg/imm/imm(reg)` | `*rd/*imm/*(imm + rd) = rs/imm` |
-| `lea`    | `reg, label/imm(label)`     | `rd = &label/(&label + imm)`    |
+| Mnemonic | Operands                    | Operation                              |
+| -------- | --------------------------- | -------------------------------------- |
+| `mov`    | `reg, reg/imm`              | `rd = rs/imm`                          |
+| `movne`  | `reg, reg/imm`              | `if (cc & CC_NE) rd = rs/imm`          |
+| `moveq`  | `reg, reg/imm`              | `if (cc & CC_EQ) rd = rs/imm`          |
+| `movge`  | `reg, reg/imm`              | `if (cc & CC_GE) rd = rs/imm`          |
+| `movgt`  | `reg, reg/imm`              | `if (cc & CC_GT) rd = rs/imm`          |
+| `movle`  | `reg, reg/imm`              | `if (cc & CC_LE) rd = rs/imm`          |
+| `movlt`  | `reg, reg/imm`              | `if (cc & CC_LT) rd = rs/imm`          |
+| `movhs`  | `reg, reg/imm`              | `if (cc & CC_HS) rd = rs/imm`          |
+| `movhi`  | `reg, reg/imm`              | `if (cc & CC_HI) rd = rs/imm`          |
+| `movls`  | `reg, reg/imm`              | `if (cc & CC_LS) rd = rs/imm`          |
+| `movlo`  | `reg, reg/imm`              | `if (cc & CC_LO) rd = rs/imm`          |
+| `push`   | `reg`                       | `sp -= 4; *sp = rs`                    |
+| `pop`    | `reg`                       | `rd = *sp; sp += 4`                    |
+| `ldsb`   | `reg, reg/imm/imm(reg)`     | `rd = sext(*(i8 *)rs/imm/(imm + rs))`  |
+| `ldsh`   | `reg, reg/imm/imm(reg)`     | `rd = sext(*(i16 *)rs/imm/(imm + rs))` |
+| `ldub`   | `reg, reg/imm/imm(reg)`     | `rd = zext(*(u8 *)rs/imm/(imm + rs))`  |
+| `lduh`   | `reg, reg/imm/imm(reg)`     | `rd = zext(*(u16 *)rs/imm/(imm + rs))` |
+| `ldw`    | `reg, reg/imm/imm(reg)`     | `rd = *rs/*imm/*(imm + rs)`            |
+| `str`    | `reg/imm, reg/imm/imm(reg)` | `*rd/*imm/*(imm + rd) = rs/imm`        |
+| `lea`    | `reg, label/imm(label)`     | `rd = &label/(&label + imm)`           |
 
 #### Notes
 
@@ -129,7 +133,6 @@ to be small without being constraining. Instructions are being added as needed.
 | -------- | ---------------- | ---------------------------------------- |
 | `msg`    | `string, reg, *` | print arguments to stdout                |
 | `out`    | `reg, reg/imm`   | write `rs/imm` bytes from `rd` to stdout |
-
 
 ## Syntax
 

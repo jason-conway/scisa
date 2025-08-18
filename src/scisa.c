@@ -408,11 +408,13 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     return NULL;
             }
             break;
-#pragma region m_ldw
-        case m_ldb:
-        case m_ldh:
+#pragma region m_ldx & m_ldsx
+        case m_ldsb:
+        case m_ldsh:
+        case m_ldub:
+        case m_lduh:
         case m_ldw:
-            n->op = op_ldbri + 3 * (m - m_ldb);
+            n->op = op_ldsbri + 3 * (m - m_ldsb);
             t = lex(t.data);
             switch (t.type) {
                 case tok_register:
@@ -982,8 +984,10 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_movlsri:
             case op_movlori:
             case op_outri:
-            case op_ldbri:
-            case op_ldhri:
+            case op_ldsbri:
+            case op_ldshri:
+            case op_ldubri:
+            case op_lduhri:
             case op_ldwri:
             case op_stbri:
             case op_sthri:
@@ -1017,8 +1021,10 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_movlsrr:
             case op_movlorr:
             case op_outrr:
-            case op_ldbrr:
-            case op_ldhrr:
+            case op_ldsbrr:
+            case op_ldshrr:
+            case op_ldubrr:
+            case op_lduhrr:
             case op_ldwrr:
             case op_stbrr:
             case op_sthrr:
@@ -1035,8 +1041,10 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
                 code[i].operand.imm[0] = n->imm[0];
                 code[i].operand.imm[1] = n->imm[1];
                 break;
-            case op_ldbrir:
-            case op_ldhrir:
+            case op_ldsbrir:
+            case op_ldshrir:
+            case op_ldubrir:
+            case op_lduhrir:
             case op_ldwrir:
             case op_stbrir:
             case op_sthrir:
