@@ -449,9 +449,11 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region OUT
             case op_outri:
+                xhexdump(map_addr(&obj, regs[w->reg[0]]), w->operand.imm[1]);
                 print_str(&r.out, str_from(map_addr(&obj, regs[w->reg[0]]), w->operand.imm[1]));
                 break;
             case op_outrr:
+                xhexdump(map_addr(&obj, regs[w->reg[0]]), regs[w->reg[1]]);
                 print_str(&r.out, str_from(map_addr(&obj, regs[w->reg[0]]), regs[w->reg[1]]));
                 break;
 #pragma endregion

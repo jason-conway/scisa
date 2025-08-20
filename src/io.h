@@ -19,3 +19,4 @@ typedef struct output_t {
 
 void print_str(output_t *o, str_t s);
 void flush_output(output_t *o);
+void xhexdump(const void *src, size_t len);
