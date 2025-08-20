@@ -276,6 +276,10 @@ static data_t *parse_directive(arena_t *a, directive_t dir, str_t *src)
             n->val = (uint8_t)val;
             n->sz = 1;
             break;
+        case dir_hword:
+            n->val = (uint16_t)val;
+            n->sz = 2;
+            break;
         case dir_word:
             n->val = (uint32_t)val;
             n->sz = 4;

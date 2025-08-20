@@ -216,10 +216,11 @@
 
 #pragma region ASM DIRECTIVES
 #define DIRECTIVE_LIST \
-    text, \
-    data, \
-    word, \
-    byte, \
-    zero, \
+    text,   \
+    data,   \
+    byte,   \
+    hword,  \
+    word,   \
+    zero,   \
     align
 #pragma endregion
