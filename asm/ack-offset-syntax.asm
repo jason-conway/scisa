@@ -19,7 +19,7 @@ l17:
     stw     r5, 28(sp)
     stw     r4, 24(sp)
 
-    call    exec
+    bl    exec
 
     ldw     r5, 28(sp)
     ldw     r4, 24(sp)
@@ -61,7 +61,7 @@ l11:
     cmp     r5, r0
     beq      l5
     dec     r5
-    call    ackermann
+    bl    ackermann
 
     mov     r5, r2
     b     l4
@@ -88,7 +88,7 @@ exec:
 
     stw     lr, 28(sp)
 
-    call     ackermann
+    bl     ackermann
 
     ldw     lr, 28(sp)
 

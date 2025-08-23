@@ -3,109 +3,109 @@
 
 main:
     msg 'add\n'
-    call usetup
+    bl usetup
     add r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     add r6, r5
-    call print
+    bl print
 
     msg 'sub\n'
-    call usetup
+    bl usetup
     sub r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     sub r6, r5
-    call print
+    bl print
     
     msg 'mul\n'
-    call usetup
+    bl usetup
     mul r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     mul r6, r5
-    call print
+    bl print
 
     msg 'div\n'
-    call usetup
+    bl usetup
     div r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     div r6, r5
-    call print
+    bl print
 
 
     msg 'sdiv\n'
-    call usetup
+    bl usetup
     sdiv r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     sdiv r6, r5
-    call print
+    bl print
 
     msg 'mod\n'
-    call usetup
+    bl usetup
     mod r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     mod r6, r5
-    call print
+    bl print
 
     msg 'smod\n'
-    call usetup
+    bl usetup
     smod r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     smod r6, r5
-    call print
+    bl print
 
     msg 'and\n'
-    call usetup
+    bl usetup
     and r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     and r6, r5
-    call print
+    bl print
 
     msg 'or\n'
-    call usetup
+    bl usetup
     or r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     or r6, r5
-    call print
+    bl print
 
     msg 'xor\n'
-    call usetup
+    bl usetup
     xor r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     xor r6, r5
-    call print
+    bl print
 
     msg 'lsl\n'
-    call usetup
+    bl usetup
     lsl r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     lsl r6, r5
-    call print
+    bl print
 
     msg 'lsr\n'
-    call usetup
+    bl usetup
     lsr r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     lsr r6, r5
-    call print
+    bl print
 
     msg 'asr\n'
-    call usetup
+    bl usetup
     asr r6, r5
-    call print
-    call isetup
+    bl print
+    bl isetup
     asr r6, r5
-    call print
+    bl print
     halt
 
 usetup:

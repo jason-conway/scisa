@@ -1,6 +1,6 @@
 .text
 main:
-    call  render
+    bl  render
     halt
 
 render:

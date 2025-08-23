@@ -35,7 +35,7 @@ l17:
     add     r31, 24
     stw     r4,  (r31)
 
-    call    exec
+    bl    exec
 
     mov     r31, sp
     add     r31, 28
@@ -93,7 +93,7 @@ l11:
     cmp     r5, r0
     beq     l5
     dec     r5
-    call    ackermann
+    bl    ackermann
 
     mov     r5, r2
     b     l4
@@ -133,7 +133,7 @@ exec:
     add     r31, 28
     stw     lr, (r31)
 
-    call     ackermann
+    bl     ackermann
 
     mov     r31, sp
     add     r31, 28

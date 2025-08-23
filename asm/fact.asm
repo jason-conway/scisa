@@ -3,8 +3,8 @@ main:
     mov   r0, 12
     mov   r1, r0
     mov   r2, r0
-    call  proc_fact
-    call  print
+    bl  proc_fact
+    bl  print
     halt
 
 proc_fact:

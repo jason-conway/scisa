@@ -87,6 +87,7 @@
     cmpri,      \
     cmprr,      \
     b,          \
+    bl,         \
     bne,        \
     beq,        \
     bge,        \
@@ -97,7 +98,6 @@
     bhi,        \
     bls,        \
     blo,        \
-    call,       \
     ret,        \
     msg,        \
     halt,
@@ -148,6 +148,7 @@
     lea,    \
     cmp,    \
     b,      \
+    bl,     \
     bne,    \
     beq,    \
     bge,    \
@@ -158,7 +159,6 @@
     bhi,    \
     bls,    \
     blo,    \
-    call,   \
     msg,
 #pragma endregion
 

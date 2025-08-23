@@ -624,6 +624,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
             break;
 #pragma endregion
         case m_b:
+        case m_bl:
         case m_bne:
         case m_beq:
         case m_bge:
@@ -634,7 +635,6 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
         case m_bhi:
         case m_bls:
         case m_blo:
-        case m_call:
             // Single label operand
             t = lex(t.data);
             if (t.type != tok_identifier) {
@@ -994,6 +994,7 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
                 code[i].reg[1] = n->reg[1];
                 break;
             case op_b:
+            case op_bl:
             case op_bne:
             case op_beq:
             case op_bge:
@@ -1004,7 +1005,6 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_bhi:
             case op_bls:
             case op_blo:
-            case op_call:
                 code[i].operand.addr = n->addr;
                 break;
             case op_msg:

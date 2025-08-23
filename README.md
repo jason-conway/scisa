@@ -74,6 +74,7 @@ to be small without being constraining. Instructions are being added as needed.
 | Mnemonic | Operands | Operation                     |
 | -------- | -------- | ----------------------------- |
 | `b`      | `label`  | `pc = &label`                 |
+| `bl`     | `label`  | `lr = pc; pc = &label`        |
 | `bne`    | `label`  | `if (cc & CC_NE) pc = &label` |
 | `beq`    | `label`  | `if (cc & CC_EQ) pc = &label` |
 | `bge`    | `label`  | `if (cc & CC_GE) pc = &label` |
@@ -84,7 +85,6 @@ to be small without being constraining. Instructions are being added as needed.
 | `bhi`    | `label`  | `if (cc & CC_HI) pc = &label` |
 | `bls`    | `label`  | `if (cc & CC_LS) pc = &label` |
 | `blo`    | `label`  | `if (cc & CC_LO) pc = &label` |
-| `call`   | `label`  | `lr = pc; pc = &label`        |
 | `ret`    |          | `pc = lr`                     |
 | `halt`   |          | `halt successfully`           |
 
@@ -283,13 +283,13 @@ Use `.text` and `.data` to switch back and forth between segments as needed.
 > If a program contains instructions, it must also contain a `.text` directive
 > (and a halt instruction)
 
-| data directive | syntax        | description               | notes                     |
-| -------------- | ------------- | ------------------------- | ------------------------- |
-| .byte          | `.byte imm`   | create a 1-byte value     | keeps lower byte of `imm` |
-| .hword         | `.hword imm ` | create a 2-byte value     | keeps lower half of `imm` |
-| .word          | `.word imm`   | create a 4-byte value     |                           |
-| .zero          | `.zero imm`   | emit `imm` zeros          |                           |
-| .align         | `.align imm`  | align data to `imm` bytes |                           |
+| data directive | syntax       | description               | notes                     |
+| -------------- | ------------ | ------------------------- | ------------------------- |
+| .byte          | `.byte imm`  | create a 1-byte value     | keeps lower byte of `imm` |
+| .hword         | `.hword imm` | create a 2-byte value     | keeps lower half of `imm` |
+| .word          | `.word imm`  | create a 4-byte value     |                           |
+| .zero          | `.zero imm`  | emit `imm` zeros          |                           |
+| .align         | `.align imm` | align data to `imm` bytes |                           |
 
 ### Assembly Syntax
 

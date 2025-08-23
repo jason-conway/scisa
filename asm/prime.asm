@@ -10,7 +10,7 @@ iter:
     halt
 cont:
     mov r3, r1
-    call is_prime
+    bl is_prime
     cmp r0, 0
     beq skip
     msg '\r'

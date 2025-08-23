@@ -563,6 +563,12 @@ result_t execute(scoff_t obj, arena_t arena)
                 regs[pc] = w->operand.addr - 1;
                 break;
 #pragma endregion
+#pragma region BL
+            case op_bl:
+                regs[lr] = regs[pc];
+                regs[pc] = w->operand.addr - 1;
+                break;
+#pragma endregion
 #pragma region BNE
             case op_bne:
                 if (regs[cc] & CC_NE) {
@@ -631,12 +637,6 @@ result_t execute(scoff_t obj, arena_t arena)
                 if (regs[cc] & CC_LO) {
                     regs[pc] = w->operand.addr - 1;
                 }
-                break;
-#pragma endregion
-#pragma region CALL
-            case op_call:
-                regs[lr] = regs[pc];
-                regs[pc] = w->operand.addr - 1;
                 break;
 #pragma endregion
 #pragma region RET

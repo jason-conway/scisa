@@ -10,7 +10,7 @@ main:
     sub   sp, 32
     stw   lr, 28(sp)
     mov   r4, 65536 ; compute popcount for inputs 1 through this value
-    call  verify
+    bl  verify
     ldw   lr, 28(sp)
     add   sp, 32
     halt
@@ -25,7 +25,7 @@ verify:
     mov   r16, 1
 cont:
     mov   r4, r16
-    call  popcount
+    bl  popcount
     mov   r5, r2
     mov   r4, r16 ; reload for disp
     msg   'popcount(', r4, ')\t= ', r5, '\t[cyc: ', cyc, ']\n'
