@@ -47,10 +47,10 @@ l17:
 
     inc     r5
     cmp     r16, r5
-    jne     l17
+    bne     l17
     inc     r4
     cmp     r4, r18
-    jne     l16
+    bne     l16
 
     mov     r31, sp
     add     r31, 44
@@ -74,7 +74,7 @@ l17:
 
 ackermann:
     cmp     r4, r0
-    jne     l12
+    bne     l12
     mov     r2, r5
     inc     r2
     ret
@@ -84,19 +84,19 @@ l5:
 l4:
     mov     r4,  r16
     cmp     r16, r0
-    jeq     l7
+    beq     l7
 
 l11:
     mov     r16, r4
     dec     r16
 
     cmp     r5, r0
-    jeq     l5
+    beq     l5
     dec     r5
     call    ackermann
 
     mov     r5, r2
-    jmp     l4
+    b     l4
 l7:
     mov     r31, sp
     add     r31, 28
@@ -122,7 +122,7 @@ l12:
     mov     r31, sp
     add     r31, 24
     stw     r16, (r31)
-    jmp     l11
+    b     l11
 
 exec:
     sub     sp, 32
@@ -144,7 +144,7 @@ exec:
     mov     r4, r3
 
     add     sp, 32
-    jmp     print
+    b     print
 
 print:
     msg     'ackermann(', r4, ', ', r5, ') = ', r6, '\t[cyc: ', cyc, ']\n'

@@ -32,7 +32,7 @@ cont:
     
     inc   r16
     cmp   r16, r17
-    jlt   cont
+    blt   cont
 
     ldw   lr,  36(sp)
     ldw   r17, 32(sp)

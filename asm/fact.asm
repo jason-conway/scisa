@@ -11,7 +11,7 @@ proc_fact:
     dec   r1
     mul   r2, r1
     cmp   r1, 1
-    jne   proc_fact
+    bne   proc_fact
     ret
 
 print:

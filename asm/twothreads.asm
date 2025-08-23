@@ -8,7 +8,7 @@ render:
 
 loop_i:
     cmp   r0, 64
-    jge   done
+    bge   done
 
     mov   r12, r0      ; r5 = ((i - 32) * 752) / 64
     sub   r12, 32
@@ -19,7 +19,7 @@ loop_i:
 
 loop_j:
     cmp   r1, 160
-    jge   next_row
+    bge   next_row
 
     mov   r12, r1      ; r6 = (((j - 80) * 752) / 160) - 160
     sub   r12, 80
@@ -34,7 +34,7 @@ loop_j:
 
 loop_k:
     cmp   r2, 100
-    jge   escape
+    bge   escape
 
     mov   r12, r3      ; xx = (x2 * x2) >> 8
     mul   r12, r3
@@ -48,7 +48,7 @@ loop_k:
     add   r9, r8
 
     cmp   r9, 1024   ; if (r2 > r)
-    jgt   escape    ;     break
+    bgt   escape    ;     break
 
     mov   r10, r7      ; z = xx - yy + cj
     sub   r10, r8
@@ -62,12 +62,12 @@ loop_k:
     mov   r4, r12
     mov   r3, r10      ; x2 = z
     inc   r2
-    jmp   loop_k
+    b   loop_k
 
 escape:
     mov   r11, 0
     cmp   r2, 100
-    jge   color     ; unbounded case
+    bge   color     ; unbounded case
 
     mov   r12, r2      ; val = (k % 4) + 1
     mod   r12, 4
@@ -77,41 +77,41 @@ escape:
 color:
     mov   r13, r11
     cmp   r13, 0
-    jeq   out0
+    beq   out0
     cmp   r13, 1
-    jeq   out1
+    beq   out1
     cmp   r13, 2
-    jeq   out2
+    beq   out2
     cmp   r13, 3
-    jeq   out3
+    beq   out3
     cmp   r13, 4
-    jeq   out4
-    jmp   next_col
+    beq   out4
+    b   next_col
 
 out0:
     msg   'X'
-    jmp   next_col
+    b   next_col
 out1:
     msg   '⋅'
-    jmp   next_col
+    b   next_col
 out2:
     msg   '·'
-    jmp   next_col
+    b   next_col
 out3:
     msg   '∙'
-    jmp   next_col
+    b   next_col
 out4:
     msg   '•'
-    jmp   next_col
+    b   next_col
 
 next_row:
     msg   '\n'
     inc   r0
-    jmp   loop_i
+    b   loop_i
 
 next_col:
     inc   r1
-    jmp   loop_j
+    b   loop_j
 
 done:
     ret
