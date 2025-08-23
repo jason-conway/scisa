@@ -58,37 +58,26 @@
     movlorr,    \
     outri,      \
     outrr,      \
-    ldsbri,     \
     ldsbrr,     \
     ldsbrir,    \
-    ldshri,     \
     ldshrr,     \
     ldshrir,    \
-    ldubri,     \
     ldubrr,     \
     ldubrir,    \
-    lduhri,     \
     lduhrr,     \
     lduhrir,    \
-    ldwri,      \
     ldwrr,      \
     ldwrir,     \
-    stbii,      \
     stbir,      \
     stbiir,     \
-    stbri,      \
     stbrr,      \
     stbrir,     \
-    sthii,      \
     sthir,      \
     sthiir,     \
-    sthri,      \
     sthrr,      \
     sthrir,     \
-    stwii,      \
     stwir,      \
     stwiir,     \
-    stwri,      \
     stwrr,      \
     stwrir,     \
     learl,      \

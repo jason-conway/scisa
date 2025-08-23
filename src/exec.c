@@ -12,39 +12,28 @@ static size_t ldst_sz(opcode_t op)
     switch (op) {
         default:
             __builtin_trap();
-        case op_ldsbri:
         case op_ldsbrr:
         case op_ldsbrir:
-        case op_ldubri:
         case op_ldubrr:
         case op_ldubrir:
-        case op_stbii:
         case op_stbir:
         case op_stbiir:
-        case op_stbri:
         case op_stbrr:
         case op_stbrir:
             return 1;
-        case op_ldshri:
         case op_ldshrr:
         case op_ldshrir:
-        case op_lduhri:
         case op_lduhrr:
         case op_lduhrir:
-        case op_sthii:
         case op_sthir:
         case op_sthiir:
-        case op_sthri:
         case op_sthrr:
         case op_sthrir:
             return 2;
-        case op_ldwri:
         case op_ldwrr:
         case op_ldwrir:
-        case op_stwii:
         case op_stwir:
         case op_stwiir:
-        case op_stwri:
         case op_stwrr:
         case op_stwrir:
             return 4;
@@ -462,10 +451,6 @@ result_t execute(scoff_t obj, arena_t arena)
                 break;
 #pragma endregion
 #pragma region LDSB
-            case op_ldsbri:
-                __builtin_memcpy(&ext.i8, map_addr(&obj, w->operand.imm[1]), sizeof(int8_t));
-                regs[w->reg[0]] = ext.i8;
-                break;
             case op_ldsbrr:
                 __builtin_memcpy(&ext.i8, map_addr(&obj, regs[w->reg[1]]), sizeof(int8_t));
                 regs[w->reg[0]] = ext.i8;
@@ -477,10 +462,6 @@ result_t execute(scoff_t obj, arena_t arena)
                 break;
 #pragma endregion
 #pragma region LDSH
-            case op_ldshri:
-                __builtin_memcpy(&ext.i16, map_addr(&obj, w->operand.imm[1]), sizeof(int16_t));
-                regs[w->reg[0]] = ext.i16;
-                break;
             case op_ldshrr:
                 __builtin_memcpy(&ext.i16, map_addr(&obj, regs[w->reg[1]]), sizeof(int16_t));
                 regs[w->reg[0]] = ext.i16;
@@ -492,10 +473,6 @@ result_t execute(scoff_t obj, arena_t arena)
                 break;
 #pragma endregion
 #pragma region LDUB
-            case op_ldubri:
-                __builtin_memcpy(&ext.u8, map_addr(&obj, w->operand.imm[1]), sizeof(uint8_t));
-                regs[w->reg[0]] = ext.u8;
-                break;
             case op_ldubrr:
                 __builtin_memcpy(&ext.u8, map_addr(&obj, regs[w->reg[1]]), sizeof(uint8_t));
                 regs[w->reg[0]] = ext.u8;
@@ -507,10 +484,6 @@ result_t execute(scoff_t obj, arena_t arena)
                 break;
 #pragma endregion
 #pragma region LDUH
-            case op_lduhri:
-                __builtin_memcpy(&ext.u16, map_addr(&obj, w->operand.imm[1]), sizeof(uint16_t));
-                regs[w->reg[0]] = ext.u16;
-                break;
             case op_lduhrr:
                 __builtin_memcpy(&ext.u16, map_addr(&obj, regs[w->reg[1]]), sizeof(uint16_t));
                 regs[w->reg[0]] = ext.u16;
@@ -522,9 +495,6 @@ result_t execute(scoff_t obj, arena_t arena)
                 break;
 #pragma endregion
 #pragma region LDW
-            case op_ldwri:
-                __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, w->operand.imm[1]), sizeof(uint32_t));
-                break;
             case op_ldwrr:
                 __builtin_memcpy(&regs[w->reg[0]], map_addr(&obj, regs[w->reg[1]]), sizeof(uint32_t));
                 break;
@@ -534,11 +504,6 @@ result_t execute(scoff_t obj, arena_t arena)
                 break;
 #pragma endregion
 #pragma region STWIx
-            case op_stbii:
-            case op_sthii:
-            case op_stwii:
-                __builtin_memcpy(map_addr(&obj, w->operand.imm[1]), &w->operand.imm[0], ldst_sz(w->op));
-                break;
             case op_stbir:
             case op_sthir:
             case op_stwir:
@@ -552,11 +517,6 @@ result_t execute(scoff_t obj, arena_t arena)
                 break;
 #pragma endregion
 #pragma region STWRx
-            case op_stbri:
-            case op_sthri:
-            case op_stwri:
-                __builtin_memcpy(map_addr(&obj, w->operand.imm[1]), &regs[w->reg[0]], ldst_sz(w->op));
-                break;
             case op_stbrr:
             case op_sthrr:
             case op_stwrr:

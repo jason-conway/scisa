@@ -249,6 +249,13 @@ static token_t lex(str_t s)
     return r;
 }
 
+#define lex_assert(t, tok)              \
+    do {                                \
+        t = lex(t.data);                \
+        if (unlikely(t.type != tok)) {  \
+            return NULL;                \
+        }                               \
+    } while (0)
 
 static data_t *parse_directive(arena_t *a, directive_t dir, str_t *src)
 {
@@ -383,14 +390,10 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                 default:
                     return NULL;
             }
+
             // Eat comma
-            t = lex(t.data);
-            switch (t.type) {
-                case tok_comma:
-                    break;
-                default:
-                    return NULL;
-            }
+            lex_assert(t, tok_comma);
+
             // Second operand can be immediate or from reg
             t = lex(t.data);
             switch (t.type) {
@@ -417,7 +420,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
         case m_ldub:
         case m_lduh:
         case m_ldw:
-            n->op = op_ldsbri + 3 * (m - m_ldsb);
+            n->op = op_ldsbrr + 2 * (m - m_ldsb);
             t = lex(t.data);
             switch (t.type) {
                 case tok_register:
@@ -429,84 +432,54 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                 default:
                     return NULL;
             }
+
             // Eat comma
+            lex_assert(t, tok_comma);
+
+            // start of second operand
+            // xxx, (reg)
+            // xxx, imm(reg)
             t = lex(t.data);
             switch (t.type) {
-                case tok_comma:
+                case tok_integer:
+                    n->op++; // [_rir]
+                    if (!str_i32(&imm, t.token)) {
+                        return NULL;
+                    }
+                    n->imm[1] = imm;
+                    lex_assert(t, tok_lparen);
+                    // fallthrough
+                case tok_lparen:
                     break;
                 default:
                     return NULL;
             }
 
-            // start of second operand
             t = lex(t.data);
             switch (t.type) {
-                // if second operand is a reg, we're all done
                 case tok_register:
-                    n->op++; // [1] reg reg
                     if (!str_reg(&reg, t.token)) {
                         return NULL;
                     }
                     n->reg[1] = reg;
                     break;
-                // but if it's an integer, it could be an offset from another reg
-                case tok_integer:
-                    if (!str_i32(&imm, t.token)) {
-                        return NULL;
-                    }
-                    n->imm[1] = imm;
-                    // now lex and check for left paren
-                    // if the operand is just the integer, we have to bail
-                    // from here, breaking will cause us to fallthrough
-                    // and call lex again
-                    t = lex(t.data);
-                    switch (t.type) {
-                        case tok_newline:
-                        case tok_eof:
-                            *src = t.data;
-                            return n;
-                        case tok_lparen:
-                            break;
-                        default:
-                            return NULL;
-                    }
-                    // last token was '('
-                    // ensure next token is register and parse
-                    t = lex(t.data);
-                    switch (t.type) {
-                        case tok_register:
-                            n->op += 2;
-                            if (!str_reg(&reg, t.token)) {
-                                return NULL;
-                            }
-                            n->reg[1] = reg;
-                            break;
-                        default:
-                            return NULL;
-                    }
-                    // ensure rparen
-                    t = lex(t.data);
-                    switch (t.type) {
-                        case tok_rparen:
-                            break;
-                        default:
-                            return NULL;
-                    }
-                    break;
                 default:
                     return NULL;
             }
+
+            // ensure closing paren
+            lex_assert(t, tok_rparen);
             break;
 #pragma endregion
 #pragma region m_str
         case m_stb:
         case m_sth:
         case m_stw:
-            n->op = op_stbii + 6 * (m - m_stb);
+            n->op = op_stbir + 4 * (m - m_stb);
             t = lex(t.data);
             switch (t.type) {
                 case tok_register:
-                    n->op += 3; // offset stWii to stWri
+                    n->op += 2; // offset stXir to stXrr
                     if (!str_reg(&reg, t.token)) {
                         return NULL;
                     }
@@ -521,10 +494,23 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                 default:
                     return NULL;
             }
+
             // Eat comma
+            lex_assert(t, tok_comma);
+
+            // xxx, (reg)
+            // xxx, imm(reg)
             t = lex(t.data);
             switch (t.type) {
-                case tok_comma:
+                case tok_integer:
+                    n->op++; // [_rir]
+                    if (!str_i32(&imm, t.token)) {
+                        return NULL;
+                    }
+                    n->imm[1] = imm;
+                    lex_assert(t, tok_lparen);
+                    // fallthrough
+                case tok_lparen:
                     break;
                 default:
                     return NULL;
@@ -533,55 +519,21 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
             t = lex(t.data);
             switch (t.type) {
                 case tok_register:
-                    n->op++; // offset stWDi to stWDr
                     if (!str_reg(&reg, t.token)) {
                         return NULL;
                     }
                     n->reg[1] = reg;
                     break;
-                case tok_integer:
-                    if (!str_i32(&imm, t.token)) {
-                        return NULL;
-                    }
-                    n->imm[1] = imm;
-                    t = lex(t.data);
-                    switch (t.type) {
-                        case tok_newline:
-                        case tok_eof:
-                            *src = t.data;
-                            return n;
-                        case tok_lparen:
-                            break;
-                        default:
-                            return NULL;
-                    }
-                    t = lex(t.data);
-                    switch (t.type) {
-                        case tok_register:
-                            n->op += 2; // offset stWDi to op_stWDir
-                            if (!str_reg(&reg, t.token)) {
-                                return NULL;
-                            }
-                            n->reg[1] = reg;
-                            break;
-                        default:
-                            return NULL;
-                    }
-                    t = lex(t.data);
-                    switch (t.type) {
-                        case tok_rparen:
-                            break;
-                        default:
-                            return NULL;
-                    }
-                    break;
                 default:
                     return NULL;
             }
+
+            lex_assert(t, tok_rparen);
             break;
 #pragma endregion
 #pragma region m_lea
         case m_lea:
+            n->op = op_learl + 2 * (m - m_lea);
             t = lex(t.data);
             switch (t.type) {
                 case tok_register:
@@ -594,60 +546,35 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     return NULL;
             }
             // omnomnom
+            lex_assert(t, tok_comma);
+
+            // xxx, (label)
+            // xxx, imm(label)
             t = lex(t.data);
             switch (t.type) {
-                case tok_comma:
-                    break;
-                default:
-                    return NULL;
-            }
-
-            // now either label or an immediate
-            t = lex(t.data);
-            switch (t.type) {
-                case tok_identifier:
-                    n->op = op_learl;
-                    // if just label, we done
-                    n->label = t.token;
-                    break;
-
                 case tok_integer:
-                    n->op = op_learil;
-                    // grab value
+                    n->op++; // [_ril]
                     if (!str_i32(&imm, t.token)) {
                         return NULL;
                     }
                     n->imm[1] = imm;
-                    // invalid syntax if next token isn't lparen
-                    t = lex(t.data);
-                    switch (t.type) {
-                        case tok_lparen:
-                            break;
-                        default:
-                            return NULL;
-                    }
-
-                    // error if not a token
-                    t = lex(t.data);
-                    switch (t.type) {
-                        case tok_identifier:
-                            n->label = t.token;
-                            break;
-                        default:
-                            return NULL;
-                    }
-                    // error if not rparen
-                    t = lex(t.data);
-                    switch (t.type) {
-                        case tok_rparen:
-                            break;
-                        default:
-                            return NULL;
-                    }
+                    lex_assert(t, tok_lparen);
+                    // fallthrough
+                case tok_lparen:
                     break;
                 default:
                     return NULL;
             }
+
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_identifier:
+                    n->label = t.token;
+                    break;
+                default:
+                    return NULL;
+            }
+            lex_assert(t, tok_rparen);
             break;
 #pragma endregion
 #pragma region m_cmp
@@ -672,13 +599,9 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                 default:
                     return NULL;
             }
-            t = lex(t.data);
-            switch (t.type) {
-                case tok_comma:
-                    break;
-                default:
-                    return NULL;
-            }
+
+            lex_assert(t, tok_comma);
+
             // Second operand can be imm or reg
             t = lex(t.data);
             switch (t.type) {
@@ -987,14 +910,6 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_movlsri:
             case op_movlori:
             case op_outri:
-            case op_ldsbri:
-            case op_ldshri:
-            case op_ldubri:
-            case op_lduhri:
-            case op_ldwri:
-            case op_stbri:
-            case op_sthri:
-            case op_stwri:
             case op_cmpri:
                 code[i].reg[0] = n->reg[0];
                 code[i].operand.imm[1] = n->imm[1];
@@ -1064,12 +979,6 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_learl:
                 code[i].reg[0] = n->reg[0];
                 code[i].operand.addr = n->addr;
-                break;
-            case op_stbii:
-            case op_sthii:
-            case op_stwii:
-                code[i].operand.imm[0] = n->imm[0];
-                code[i].operand.imm[1] = n->imm[1];
                 break;
             case op_stbir:
             case op_sthir:
