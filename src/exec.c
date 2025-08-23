@@ -558,76 +558,76 @@ result_t execute(scoff_t obj, arena_t arena)
                 }
                 break;
 #pragma endregion
-#pragma region JMP
-            case op_jmp:
+#pragma region B
+            case op_b:
                 regs[pc] = w->operand.addr - 1;
                 break;
 #pragma endregion
-#pragma region JNE
-            case op_jne:
+#pragma region BNE
+            case op_bne:
                 if (regs[cc] & CC_NE) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
-#pragma region JEQ
-            case op_jeq:
+#pragma region BEQ
+            case op_beq:
                 if (regs[cc] & CC_EQ) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
-#pragma region JGE
-            case op_jge:
+#pragma region BGE
+            case op_bge:
                 if (regs[cc] & CC_GE) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
-#pragma region JGT
-            case op_jgt:
+#pragma region BGT
+            case op_bgt:
                 if (regs[cc] & CC_GT) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
-#pragma region JLE
-            case op_jle:
+#pragma region BLE
+            case op_ble:
                 if (regs[cc] & CC_LE) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
-#pragma region JLT
-            case op_jlt:
+#pragma region BLT
+            case op_blt:
                 if (regs[cc] & CC_LT) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
-#pragma region JHS
-            case op_jhs:
+#pragma region BHS
+            case op_bhs:
                 if (regs[cc] & CC_HS) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
-#pragma region JHI
-            case op_jhi:
+#pragma region BHI
+            case op_bhi:
                 if (regs[cc] & CC_HI) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
-#pragma region JLS
-            case op_jls:
+#pragma region BLS
+            case op_bls:
                 if (regs[cc] & CC_LS) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
 #pragma endregion
-#pragma region JLO
-            case op_jlo:
+#pragma region BLO
+            case op_blo:
                 if (regs[cc] & CC_LO) {
                     regs[pc] = w->operand.addr - 1;
                 }

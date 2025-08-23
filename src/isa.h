@@ -86,17 +86,17 @@
     cmpir,      \
     cmpri,      \
     cmprr,      \
-    jmp,        \
-    jne,        \
-    jeq,        \
-    jge,        \
-    jgt,        \
-    jle,        \
-    jlt,        \
-    jhs,        \
-    jhi,        \
-    jls,        \
-    jlo,        \
+    b,          \
+    bne,        \
+    beq,        \
+    bge,        \
+    bgt,        \
+    ble,        \
+    blt,        \
+    bhs,        \
+    bhi,        \
+    bls,        \
+    blo,        \
     call,       \
     ret,        \
     msg,        \
@@ -147,17 +147,17 @@
     stw,    \
     lea,    \
     cmp,    \
-    jmp,    \
-    jne,    \
-    jeq,    \
-    jge,    \
-    jgt,    \
-    jle,    \
-    jlt,    \
-    jhs,    \
-    jhi,    \
-    jls,    \
-    jlo,    \
+    b,      \
+    bne,    \
+    beq,    \
+    bge,    \
+    bgt,    \
+    ble,    \
+    blt,    \
+    bhs,    \
+    bhi,    \
+    bls,    \
+    blo,    \
     call,   \
     msg,
 #pragma endregion

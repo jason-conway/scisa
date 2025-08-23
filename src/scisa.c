@@ -623,17 +623,17 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
             }
             break;
 #pragma endregion
-        case m_jmp:
-        case m_jne:
-        case m_jeq:
-        case m_jge:
-        case m_jgt:
-        case m_jle:
-        case m_jlt:
-        case m_jhs:
-        case m_jhi:
-        case m_jls:
-        case m_jlo:
+        case m_b:
+        case m_bne:
+        case m_beq:
+        case m_bge:
+        case m_bgt:
+        case m_ble:
+        case m_blt:
+        case m_bhs:
+        case m_bhi:
+        case m_bls:
+        case m_blo:
         case m_call:
             // Single label operand
             t = lex(t.data);
@@ -641,7 +641,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                 return NULL;
             }
             n->label = t.token;
-            n->op = op_jne + (m - m_jne);
+            n->op = op_b + (m - m_b);
             break;
         case m_msg:
             n->op = op_msg;
@@ -993,17 +993,17 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
                 code[i].operand.imm[1] = n->imm[1];
                 code[i].reg[1] = n->reg[1];
                 break;
-            case op_jmp:
-            case op_jne:
-            case op_jeq:
-            case op_jge:
-            case op_jgt:
-            case op_jle:
-            case op_jlt:
-            case op_jhs:
-            case op_jhi:
-            case op_jls:
-            case op_jlo:
+            case op_b:
+            case op_bne:
+            case op_beq:
+            case op_bge:
+            case op_bgt:
+            case op_ble:
+            case op_blt:
+            case op_bhs:
+            case op_bhi:
+            case op_bls:
+            case op_blo:
             case op_call:
                 code[i].operand.addr = n->addr;
                 break;

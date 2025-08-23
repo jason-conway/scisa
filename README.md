@@ -59,6 +59,7 @@ to be small without being constraining. Instructions are being added as needed.
 | `asr`    | `reg, reg/imm`     | `(signed)rd >>= rs/imm & mask`      |
 | `inc`    | `reg`              | `rd++`                              |
 | `dec`    | `reg`              | `rd--`                              |
+| `neg`    | `reg`              | `rd = -rd`                          |
 | `cmp`    | `reg/imm, reg/imm` | see section on  `cmp`               |
 
 #### Notes
@@ -72,17 +73,17 @@ to be small without being constraining. Instructions are being added as needed.
 
 | Mnemonic | Operands | Operation                     |
 | -------- | -------- | ----------------------------- |
-| `jmp`    | `label`  | `pc = &label`                 |
-| `jne`    | `label`  | `if (cc & CC_NE) pc = &label` |
-| `jeq`    | `label`  | `if (cc & CC_EQ) pc = &label` |
-| `jge`    | `label`  | `if (cc & CC_GE) pc = &label` |
-| `jgt`    | `label`  | `if (cc & CC_GT) pc = &label` |
-| `jle`    | `label`  | `if (cc & CC_LE) pc = &label` |
-| `jlt`    | `label`  | `if (cc & CC_LT) pc = &label` |
-| `jhs`    | `label`  | `if (cc & CC_HS) pc = &label` |
-| `jhi`    | `label`  | `if (cc & CC_HI) pc = &label` |
-| `jls`    | `label`  | `if (cc & CC_LS) pc = &label` |
-| `jlo`    | `label`  | `if (cc & CC_LO) pc = &label` |
+| `b`      | `label`  | `pc = &label`                 |
+| `bne`    | `label`  | `if (cc & CC_NE) pc = &label` |
+| `beq`    | `label`  | `if (cc & CC_EQ) pc = &label` |
+| `bge`    | `label`  | `if (cc & CC_GE) pc = &label` |
+| `bgt`    | `label`  | `if (cc & CC_GT) pc = &label` |
+| `ble`    | `label`  | `if (cc & CC_LE) pc = &label` |
+| `blt`    | `label`  | `if (cc & CC_LT) pc = &label` |
+| `bhs`    | `label`  | `if (cc & CC_HS) pc = &label` |
+| `bhi`    | `label`  | `if (cc & CC_HI) pc = &label` |
+| `bls`    | `label`  | `if (cc & CC_LS) pc = &label` |
+| `blo`    | `label`  | `if (cc & CC_LO) pc = &label` |
 | `call`   | `label`  | `lr = pc; pc = &label`        |
 | `ret`    |          | `pc = lr`                     |
 | `halt`   |          | `halt successfully`           |
@@ -93,28 +94,28 @@ to be small without being constraining. Instructions are being added as needed.
 
 ### Data Handling and Memory Instructions
 
-| Mnemonic | Operands                    | Operation                              |
-| -------- | --------------------------- | -------------------------------------- |
-| `mov`    | `reg, reg/imm`              | `rd = rs/imm`                          |
-| `movne`  | `reg, reg/imm`              | `if (cc & CC_NE) rd = rs/imm`          |
-| `moveq`  | `reg, reg/imm`              | `if (cc & CC_EQ) rd = rs/imm`          |
-| `movge`  | `reg, reg/imm`              | `if (cc & CC_GE) rd = rs/imm`          |
-| `movgt`  | `reg, reg/imm`              | `if (cc & CC_GT) rd = rs/imm`          |
-| `movle`  | `reg, reg/imm`              | `if (cc & CC_LE) rd = rs/imm`          |
-| `movlt`  | `reg, reg/imm`              | `if (cc & CC_LT) rd = rs/imm`          |
-| `movhs`  | `reg, reg/imm`              | `if (cc & CC_HS) rd = rs/imm`          |
-| `movhi`  | `reg, reg/imm`              | `if (cc & CC_HI) rd = rs/imm`          |
-| `movls`  | `reg, reg/imm`              | `if (cc & CC_LS) rd = rs/imm`          |
-| `movlo`  | `reg, reg/imm`              | `if (cc & CC_LO) rd = rs/imm`          |
-| `push`   | `reg`                       | `sp -= 4; *sp = rs`                    |
-| `pop`    | `reg`                       | `rd = *sp; sp += 4`                    |
-| `ldsb`   | `reg, reg/imm/imm(reg)`     | `rd = sext(*(i8 *)rs/imm/(imm + rs))`  |
-| `ldsh`   | `reg, reg/imm/imm(reg)`     | `rd = sext(*(i16 *)rs/imm/(imm + rs))` |
-| `ldub`   | `reg, reg/imm/imm(reg)`     | `rd = zext(*(u8 *)rs/imm/(imm + rs))`  |
-| `lduh`   | `reg, reg/imm/imm(reg)`     | `rd = zext(*(u16 *)rs/imm/(imm + rs))` |
-| `ldw`    | `reg, reg/imm/imm(reg)`     | `rd = *rs/*imm/*(imm + rs)`            |
-| `str`    | `reg/imm, reg/imm/imm(reg)` | `*rd/*imm/*(imm + rd) = rs/imm`        |
-| `lea`    | `reg, label/imm(label)`     | `rd = &label/(&label + imm)`           |
+| Mnemonic | Operands                  | Operation                          |
+| -------- | ------------------------- | ---------------------------------- |
+| `mov`    | `reg, reg/imm`            | `rd = rs/imm`                      |
+| `movne`  | `reg, reg/imm`            | `if (cc & CC_NE) rd = rs/imm`      |
+| `moveq`  | `reg, reg/imm`            | `if (cc & CC_EQ) rd = rs/imm`      |
+| `movge`  | `reg, reg/imm`            | `if (cc & CC_GE) rd = rs/imm`      |
+| `movgt`  | `reg, reg/imm`            | `if (cc & CC_GT) rd = rs/imm`      |
+| `movle`  | `reg, reg/imm`            | `if (cc & CC_LE) rd = rs/imm`      |
+| `movlt`  | `reg, reg/imm`            | `if (cc & CC_LT) rd = rs/imm`      |
+| `movhs`  | `reg, reg/imm`            | `if (cc & CC_HS) rd = rs/imm`      |
+| `movhi`  | `reg, reg/imm`            | `if (cc & CC_HI) rd = rs/imm`      |
+| `movls`  | `reg, reg/imm`            | `if (cc & CC_LS) rd = rs/imm`      |
+| `movlo`  | `reg, reg/imm`            | `if (cc & CC_LO) rd = rs/imm`      |
+| `push`   | `reg`                     | `sp -= 4; *sp = rs`                |
+| `pop`    | `reg`                     | `rd = *sp; sp += 4`                |
+| `ldsb`   | `reg, (reg)/imm(reg)`     | `rd = sext(*(i8 *)rs/(imm + rs))`  |
+| `ldsh`   | `reg, (reg)/imm(reg)`     | `rd = sext(*(i16 *)rs/(imm + rs))` |
+| `ldub`   | `reg, (reg)/imm(reg)`     | `rd = zext(*(u8 *)rs/(imm + rs))`  |
+| `lduh`   | `reg, (reg)/imm(reg)`     | `rd = zext(*(u16 *)rs/(imm + rs))` |
+| `ldw`    | `reg, (reg)/imm(reg)`     | `rd = *rs/*(imm + rs)`             |
+| `str`    | `reg/imm, (reg)/imm(reg)` | `*rd/*(imm + rd) = rs/imm`         |
+| `lea`    | `reg, (label)/imm(label)` | `rd = &label/(&label + imm)`       |
 
 #### Notes
 
@@ -201,22 +202,18 @@ sub r3, 50
 
 ```asm
 mov r5, sp
-ldr r4, r5 ; *r5 = r4
+ldr r4, (r5) ; *r5 = r4
 ```
 
 ```asm
 mov r5, 0x10000000
-ldr r4, r5 ; r4 = *0x10000000
-```
-
-```asm
-ldr r4, 0x10000000 ; r4 = *0x10000000
+ldr r4, (r5) ; r4 = *0x10000000
 ```
 
 ```asm
 mov r5, 0x10000000
 add r5, 16
-ldr r4, r5
+ldr r4, (r5)
 ```
 
 is identical to
@@ -233,15 +230,16 @@ ldr r4, 16(r5)
 ```asm
 inc r4 ; r4 = r4 + 1
 dec r5 ; r5 = r5 - 1
+neg r6 ; r6 = 0 - r6
 ```
 
 #### Stack Instructions
 
 ```asm
 push r4 ; sp -= 4
-        ; str r4, sp
+        ; str r4, (sp)
 
-pop r5  ; ldr r5, sp
+pop r5  ; ldr r5, (sp)
         ; sp += 4
 ```
 
@@ -285,12 +283,13 @@ Use `.text` and `.data` to switch back and forth between segments as needed.
 > If a program contains instructions, it must also contain a `.text` directive
 > (and a halt instruction)
 
-| data directive | syntax       | description               | notes                  |
-| -------------- | ------------ | ------------------------- | ---------------------- |
-| .word          | `.word imm`  | create a 4-byte value     |                        |
-| .byte          | `.byte imm`  | create a 1-byte value     | keeps lower byte `imm` |
-| .zero          | `.zero imm`  | emit `imm` zeros          |                        |
-| .align         | `.align imm` | align data to `imm` bytes |                        |
+| data directive | syntax        | description               | notes                     |
+| -------------- | ------------- | ------------------------- | ------------------------- |
+| .byte          | `.byte imm`   | create a 1-byte value     | keeps lower byte of `imm` |
+| .hword         | `.hword imm ` | create a 2-byte value     | keeps lower half of `imm` |
+| .word          | `.word imm`   | create a 4-byte value     |                           |
+| .zero          | `.zero imm`   | emit `imm` zeros          |                           |
+| .align         | `.align imm`  | align data to `imm` bytes |                           |
 
 ### Assembly Syntax
 
@@ -305,9 +304,9 @@ sub r3, 50
 
 ---
 
-#### `reg, reg/imm/imm(reg)`
+#### `reg, (reg)/imm(reg)`
 
-Load and store instructions support a `reg, reg/imm/imm(reg)` syntax.
+Load and store instructions support a `reg, (reg)/imm(reg)` syntax.
 
 ```asm
 ldr r18, 48(sp)
@@ -316,11 +315,20 @@ ldr r18, 48(sp)
 str r18, 0x30(sp)
 ```
 
+```asm
+add r18, 48
+ldr r18, (sp)
+...
+...
+add r18, 0x30
+str r18, (sp)
+```
+
 ---
 
-#### `reg, label/imm(label)`
+#### `reg, (label)/imm(label)`
 
-The `LEA` instruction supports `reg, label/imm(label)` syntax.
+The `lea` instruction supports `reg, (label)/imm(label)` syntax.
 
 ```asm
 .data
@@ -352,7 +360,7 @@ Alternatively, keep the base label address on hand and apply an offset at load:
 
 ```asm
 hash:
-    lea r2, consts
+    lea r2, (consts)
     ...
     ...
     ; x *= consts[2]
