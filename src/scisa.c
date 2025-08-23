@@ -15,7 +15,7 @@ static bool is_register(str_t s)
     if (str_equal(s, S("sp")) || str_equal(s, S("fp"))) {
         return true;
     }
-    if (str_equal(s, S("cc"))) {
+    if (str_equal(s, S("cc")) || str_equal(s, S("cyc"))) {
         return true;
     }
 

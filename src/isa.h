@@ -211,7 +211,8 @@
     lr,     \
     fp,     \
     sp,     \
-    cc
+    cc,     \
+    cyc
 #pragma endregion
 
 #pragma region ASM DIRECTIVES

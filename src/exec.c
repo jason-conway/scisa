@@ -98,15 +98,19 @@ result_t execute(scoff_t obj, arena_t arena)
     regs[cc] = CC_NULL;
     regs[pc] = 0x0;
 
+    // vm cycle counter
+    regs[cyc] = 0x0;
+
     scir_t *insns = obj.code;
     for (;; regs[pc]++) {
-        int32_t rel = 0;
-        union ldst_t {
+        regs[cyc]++;
+        int32_t rel = 0; // for imm+reg addressing
+        union ext_t {
             int8_t   i8;
             uint8_t  u8;
             int16_t  i16;
             uint16_t u16;
-        } ldst;
+        } ext; // for implicit [s|z]ext
         scir_t *w = &insns[regs[pc]];
         switch (w->op) {
 #pragma region ABORT
@@ -459,62 +463,62 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region LDSB
             case op_ldsbri:
-                __builtin_memcpy(&ldst.i8, map_addr(&obj, w->operand.imm[1]), sizeof(int8_t));
-                regs[w->reg[0]] = ldst.i8;
+                __builtin_memcpy(&ext.i8, map_addr(&obj, w->operand.imm[1]), sizeof(int8_t));
+                regs[w->reg[0]] = ext.i8;
                 break;
             case op_ldsbrr:
-                __builtin_memcpy(&ldst.i8, map_addr(&obj, regs[w->reg[1]]), sizeof(int8_t));
-                regs[w->reg[0]] = ldst.i8;
+                __builtin_memcpy(&ext.i8, map_addr(&obj, regs[w->reg[1]]), sizeof(int8_t));
+                regs[w->reg[0]] = ext.i8;
                 break;
             case op_ldsbrir:
                 rel = regs[w->reg[1]] + w->operand.imm[1];
-                __builtin_memcpy(&ldst.i8, map_addr(&obj, rel), sizeof(int8_t));
-                regs[w->reg[0]] = ldst.i8;
+                __builtin_memcpy(&ext.i8, map_addr(&obj, rel), sizeof(int8_t));
+                regs[w->reg[0]] = ext.i8;
                 break;
 #pragma endregion
 #pragma region LDSH
             case op_ldshri:
-                __builtin_memcpy(&ldst.i16, map_addr(&obj, w->operand.imm[1]), sizeof(int16_t));
-                regs[w->reg[0]] = ldst.i16;
+                __builtin_memcpy(&ext.i16, map_addr(&obj, w->operand.imm[1]), sizeof(int16_t));
+                regs[w->reg[0]] = ext.i16;
                 break;
             case op_ldshrr:
-                __builtin_memcpy(&ldst.i16, map_addr(&obj, regs[w->reg[1]]), sizeof(int16_t));
-                regs[w->reg[0]] = ldst.i16;
+                __builtin_memcpy(&ext.i16, map_addr(&obj, regs[w->reg[1]]), sizeof(int16_t));
+                regs[w->reg[0]] = ext.i16;
                 break;
             case op_ldshrir:
                 rel = regs[w->reg[1]] + w->operand.imm[1];
-                __builtin_memcpy(&ldst.i16, map_addr(&obj, rel), sizeof(int16_t));
-                regs[w->reg[0]] = ldst.i16;
+                __builtin_memcpy(&ext.i16, map_addr(&obj, rel), sizeof(int16_t));
+                regs[w->reg[0]] = ext.i16;
                 break;
 #pragma endregion
 #pragma region LDUB
             case op_ldubri:
-                __builtin_memcpy(&ldst.u8, map_addr(&obj, w->operand.imm[1]), sizeof(uint8_t));
-                regs[w->reg[0]] = ldst.u8;
+                __builtin_memcpy(&ext.u8, map_addr(&obj, w->operand.imm[1]), sizeof(uint8_t));
+                regs[w->reg[0]] = ext.u8;
                 break;
             case op_ldubrr:
-                __builtin_memcpy(&ldst.u8, map_addr(&obj, regs[w->reg[1]]), sizeof(uint8_t));
-                regs[w->reg[0]] = ldst.u8;
+                __builtin_memcpy(&ext.u8, map_addr(&obj, regs[w->reg[1]]), sizeof(uint8_t));
+                regs[w->reg[0]] = ext.u8;
                 break;
             case op_ldubrir:
                 rel = regs[w->reg[1]] + w->operand.imm[1];
-                __builtin_memcpy(&ldst.u8, map_addr(&obj, rel), sizeof(uint8_t));
-                regs[w->reg[0]] = ldst.u8;
+                __builtin_memcpy(&ext.u8, map_addr(&obj, rel), sizeof(uint8_t));
+                regs[w->reg[0]] = ext.u8;
                 break;
 #pragma endregion
 #pragma region LDUH
             case op_lduhri:
-                __builtin_memcpy(&ldst.u16, map_addr(&obj, w->operand.imm[1]), sizeof(uint16_t));
-                regs[w->reg[0]] = ldst.u16;
+                __builtin_memcpy(&ext.u16, map_addr(&obj, w->operand.imm[1]), sizeof(uint16_t));
+                regs[w->reg[0]] = ext.u16;
                 break;
             case op_lduhrr:
-                __builtin_memcpy(&ldst.u16, map_addr(&obj, regs[w->reg[1]]), sizeof(uint16_t));
-                regs[w->reg[0]] = ldst.u16;
+                __builtin_memcpy(&ext.u16, map_addr(&obj, regs[w->reg[1]]), sizeof(uint16_t));
+                regs[w->reg[0]] = ext.u16;
                 break;
             case op_lduhrir:
                 rel = regs[w->reg[1]] + w->operand.imm[1];
-                __builtin_memcpy(&ldst.u16, map_addr(&obj, rel), sizeof(uint16_t));
-                regs[w->reg[0]] = ldst.u16;
+                __builtin_memcpy(&ext.u16, map_addr(&obj, rel), sizeof(uint16_t));
+                regs[w->reg[0]] = ext.u16;
                 break;
 #pragma endregion
 #pragma region LDW
