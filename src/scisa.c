@@ -36,7 +36,6 @@ static bool is_mnemonic(str_t s, mnemonic_t *m)
     static const str_t names[] = {
         MAP(GEN_STR, MNEMONICS_LIST)
     };
-    s = str_lower(s);
     for (size_t i = 0; i < countof(names); i++) {
         if (str_equal(names[i], s)) {
             *m = i + 1;

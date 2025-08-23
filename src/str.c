@@ -16,6 +16,19 @@ str_t str_from(uint8_t *head, int64_t len)
     };
 }
 
+bool str_equali(str_t s1, str_t s2)
+{
+    if (s1.len != s2.len) {
+        return false;
+    }
+    for (int64_t i = 0; i < s1.len; i++) {
+        if (to_lower(s1.data[i]) != to_lower(s2.data[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool str_equal(str_t s1, str_t s2)
 {
     if (s1.len != s2.len) {
