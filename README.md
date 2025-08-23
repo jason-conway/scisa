@@ -85,6 +85,7 @@ to be small without being constraining. Instructions are being added as needed.
 | `bhi`    | `label`  | `if (cc & CC_HI) pc = &label` |
 | `bls`    | `label`  | `if (cc & CC_LS) pc = &label` |
 | `blo`    | `label`  | `if (cc & CC_LO) pc = &label` |
+| `br`     | `reg`    | `pc = *rs`                    |
 | `ret`    |          | `pc = lr`                     |
 | `halt`   |          | `halt successfully`           |
 
