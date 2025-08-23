@@ -3,9 +3,9 @@
 | reg       | name            | saver   | count |
 | --------- | --------------- | ------- | ----- |
 | `r0-r3`   | return values   | caller  | `4`   |
-| `r4-r11`  | fn arguments    | caller  | `8`   |
-| `r12-r23` | saved registers | callee  | `12`  |
-| `r24-r31` | temporaries     | caller* | `8`   |
+| `r4-r15`  | fn arguments    | caller  | `12`  |
+| `r16-r23` | saved registers | callee  | `8`   |
+| `r24-r31` | scratch         | caller* | `8`   |
 
 > *volatile across calls. Must be saved by the caller if used later.
 
@@ -32,10 +32,10 @@ CCIfType<[i32], CCAssignToStack<4, 4>>
 CCIfType<[i1, i8, i16], CCPromoteToType<i32>>,
 ```
 
-The first 8 integer arguments are passed in integer registers.
+The first 12 integer arguments are passed in integer registers.
 
 ```tablegen
-CCIfType<[i32], CCAssignToReg<[R4, R5, R6, R7, R8, R9, R10, R11]>>,
+CCIfType<[i32], CCAssignToReg<[R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15]>>,
 ```
 
 Integer values get stored in stack slots that are 4 bytes in size and 4-byte
