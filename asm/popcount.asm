@@ -9,7 +9,7 @@ masks:
 main:
     sub   sp, 32
     stw   lr, 28(sp)
-    mov   r4, 16 ; compute popcount for inputs 1 through this value
+    mov   r4, 65536 ; compute popcount for inputs 1 through this value
     call  verify
     ldw   lr, 28(sp)
     add   sp, 32
@@ -28,7 +28,7 @@ cont:
     call  popcount
     mov   r5, r2
     mov   r4, r16 ; reload for disp
-    msg   'popcount(', r4, ')\t= ', r5, '\n'
+    msg   'popcount(', r4, ')\t= ', r5, '\t[cyc: ', cyc, ']\n'
     
     inc   r16
     cmp   r16, r17
@@ -41,7 +41,7 @@ cont:
     ret
 
 popcount:
-    lea   r28, masks
+    lea   r28, (masks)
 
     mov   r2, r4
     lsr   r2, 1

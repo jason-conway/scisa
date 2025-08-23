@@ -100,5 +100,5 @@ exec:
     jmp     print
 
 print:
-    msg     'ackermann(', r4, ', ', r5, ') = ', r6, '\n'
+    msg     'ackermann(', r4, ', ', r5, ') = ', r6, '\t[cyc: ', cyc, ']\n'
     ret
