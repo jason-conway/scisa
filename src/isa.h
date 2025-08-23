@@ -98,6 +98,7 @@
     bhi,        \
     bls,        \
     blo,        \
+    br,         \
     ret,        \
     msg,        \
     halt,
@@ -159,6 +160,7 @@
     bhi,    \
     bls,    \
     blo,    \
+    br,     \
     msg,
 #pragma endregion
 

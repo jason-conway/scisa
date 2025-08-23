@@ -643,6 +643,26 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
             n->label = t.token;
             n->op = op_b + (m - m_b);
             break;
+        case m_br:
+            // Single (reg) operand
+            lex_assert(t, tok_lparen);
+
+            n->op = op_br + (m - m_br);
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_register:
+                    if (!str_reg(&reg, t.token)) {
+                        return NULL;
+                    }
+                    n->reg[0] = reg;
+                    break;
+                default:
+                    return NULL;
+            }
+
+            lex_assert(t, tok_rparen);
+            break;
+#pragma region m_msg
         case m_msg:
             n->op = op_msg;
             for (tok_t last = tok_error;;) {
@@ -682,6 +702,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                 last = t.type;
             }
             __builtin_trap();
+#pragma endregion   
     }
 
     t = lex(t.data);
@@ -1006,6 +1027,9 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_bls:
             case op_blo:
                 code[i].operand.addr = n->addr;
+                break;
+            case op_br:
+                code[i].operand.addr = n->reg[0];
                 break;
             case op_msg:
                 code[i].operand.head = n->head;

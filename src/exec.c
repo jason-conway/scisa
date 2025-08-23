@@ -558,8 +558,9 @@ result_t execute(scoff_t obj, arena_t arena)
                 }
                 break;
 #pragma endregion
-#pragma region B
+#pragma region B & BR
             case op_b:
+            case op_br:
                 regs[pc] = w->operand.addr - 1;
                 break;
 #pragma endregion
@@ -628,13 +629,6 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma region BLS
             case op_bls:
                 if (regs[cc] & CC_LS) {
-                    regs[pc] = w->operand.addr - 1;
-                }
-                break;
-#pragma endregion
-#pragma region BLO
-            case op_blo:
-                if (regs[cc] & CC_LO) {
                     regs[pc] = w->operand.addr - 1;
                 }
                 break;
