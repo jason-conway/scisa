@@ -387,7 +387,6 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
         case m_movhi:
         case m_movls:
         case m_movlo:
-        case m_out:
             // op will start as imm variant of `m`
             n->op = op_movri + 2 * (m - m_mov);
 
@@ -418,6 +417,44 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                     break;
                 case tok_register:
                     n->op++; // change to reg-reg variant
+                    if (!str_reg(&reg, t.token)) {
+                        return NULL;
+                    }
+                    n->reg[1] = reg;
+                    break;
+                default:
+                    return NULL;
+            }
+            break;
+        case m_out:
+            lex_assert(t, tok_lparen);
+
+            n->op = op_outri + 2 * (m - m_out);
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_register:
+                    if (!str_reg(&reg, t.token)) {
+                        return NULL;
+                    }
+                    n->reg[0] = reg;
+                    break;
+                default:
+                    return NULL;
+            }
+            lex_assert(t, tok_rparen);
+
+            lex_assert(t, tok_comma);
+
+            t = lex(t.data);
+            switch (t.type) {
+                case tok_integer:
+                    if (!str_i32(&imm, t.token)) {
+                        return NULL;
+                    }
+                    n->imm[1] = imm;
+                    break;
+                case tok_register:
+                    n->op++;
                     if (!str_reg(&reg, t.token)) {
                         return NULL;
                     }
@@ -715,7 +752,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                 last = t.type;
             }
             __builtin_trap();
-#pragma endregion   
+#pragma endregion
     }
 
     t = lex(t.data);
@@ -899,7 +936,7 @@ static memory_region_t assemble_data(ast_t *ast, arena_t *arena)
             const size_t len = d->sz - 1; // space for null included in size...
             __builtin_memcpy(&r.base[offset], (void *)d->data, len);
             r.base[offset + len] = '\0'; // but does not exist in the source string
-        } 
+        }
         else {
             __builtin_memcpy(&r.base[offset], &d->data, d->sz);
         }

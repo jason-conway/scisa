@@ -2,10 +2,10 @@
 
 main:
 	lea	r4, (ro__str_data)
-	call	svg2rgb
+	bl	svg2rgb
 	mov	r12, r0
 	mov	r4, r12
-	call	rgb2svg
+	bl	rgb2svg
 	mov	r5, r12
 	lsr	r5, 16
 	mov	r7, r12
@@ -14,7 +14,7 @@ main:
 	and	r12, 255
 	mov	r4, r0
 	mov	r6, r12
-	call	print
+	bl	print
 	mov	r0, 0
 	halt
 
@@ -73,7 +73,7 @@ print:
 	; r7 blue
 	lea r12, (ro__str_sz)
 	ldw r12, (r12)
-	out r4, r12 ; ??
+	out (r4), r12 ; ??
 	msg ' (', r5, ', ', r6, ', ', r7, ')\n'
 	ret
 
@@ -3521,29 +3521,8 @@ ro__n_data:
 
 .align 4
 ro__str_sz:
-	.word	6 ;15
+	.word	14
 
-.align 1
+.align 4
 ro__str_data:
-	.byte	119
-	.byte	104
-	.byte	105
-	.byte	116
-	.byte	101
-	.byte	0
-
-	; .byte	67
-	; .byte	79
-	; .byte	82
-	; .byte	78
-	; .byte	102
-	; .byte	108
-	; .byte	111
-	; .byte	119
-	; .byte	101
-	; .byte	114
-	; .byte	66
-	; .byte	76
-	; .byte	85
-	; .byte	69
-	; .byte	0
+	.ascii 'darkturquoise'

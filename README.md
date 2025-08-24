@@ -121,20 +121,19 @@ to be small without being constraining. Instructions are being added as needed.
 #### Notes
 
 - The first operand of `ldr` is the **destination** register (`rd`). Regardless
-  of whether the second operand is an immediate value, a register, or an
-  immediate offset from a register, the resulting value is interpreted as the
-  load *address*.
+  of whether the second operand is a register or an immediate offset from a
+  register, the resulting value is interpreted as the load *address*.
 - The first operand of `str` is the **source** register (`rs`). Like `ldr`, it
-  does not matter whether the second operand is an immediate value, a register,
-  or an immediate offset from a register, the resulting value is interpreted as
-  the store *address*.
+  does not matter whether the second operand is a register or an immediate
+  offset from a register, the resulting value is interpreted as the store
+  *address*.
 
 ### String and Output Instructions
 
-| Mnemonic | Operands         | Operation                                |
-| -------- | ---------------- | ---------------------------------------- |
-| `msg`    | `string, reg, *` | print arguments to stdout                |
-| `out`    | `reg, reg/imm`   | write `rs/imm` bytes from `rd` to stdout |
+| Mnemonic | Operands         | Operation                 |
+| -------- | ---------------- | ------------------------- |
+| `msg`    | `string, reg, *` | print arguments to stdout |
+| `out`    | `(reg), reg/imm` | `write(1, (rd), rs/imm)`  |
 
 ## Syntax
 
@@ -284,13 +283,14 @@ Use `.text` and `.data` to switch back and forth between segments as needed.
 > If a program contains instructions, it must also contain a `.text` directive
 > (and a halt instruction)
 
-| data directive | syntax       | description               | notes                     |
-| -------------- | ------------ | ------------------------- | ------------------------- |
-| .byte          | `.byte imm`  | create a 1-byte value     | keeps lower byte of `imm` |
-| .hword         | `.hword imm` | create a 2-byte value     | keeps lower half of `imm` |
-| .word          | `.word imm`  | create a 4-byte value     |                           |
-| .zero          | `.zero imm`  | emit `imm` zeros          |                           |
-| .align         | `.align imm` | align data to `imm` bytes |                           |
+| data directive | syntax       | description                     | notes                     |
+| -------------- | ------------ | ------------------------------- | ------------------------- |
+| `.ascii`       | `.ascii str` | create a null-terminated string |                           |
+| `.byte`        | `.byte imm`  | create a 1-byte value           | keeps lower byte of `imm` |
+| `.hword`       | `.hword imm` | create a 2-byte value           | keeps lower half of `imm` |
+| `.word`        | `.word imm`  | create a 4-byte value           |                           |
+| `.zero`        | `.zero imm`  | emit `imm` zeros                |                           |
+| `.align`       | `.align imm` | align data to `imm` bytes       |                           |
 
 ### Assembly Syntax
 

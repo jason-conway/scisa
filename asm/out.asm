@@ -1,16 +1,17 @@
 .text
 main:
-    lea r0, lstr
+    lea r0, (lstr)
     msg 'loaded lstr address into r0\n'
-    lea r1, lstrsz
+    lea r1, (lstrsz)
     msg 'loaded lstrsz address into r1\n'
-    ldw r2, r1
+    ldw r2, (r1)
     msg '*lstrsz: ', r2, '\n'
-    ldub r10, r0
+    ldub r10, (r0)
     msg '*r0: ', r10, '\n'
-    out r0, r2
+    out (r0), r2
     msg '\n'
-    out r0, 14
+    lea r0, (lascii)
+    out (r0), r2
     msg '\n'
     msg 'done\n'
     halt
@@ -35,3 +36,7 @@ lstr:
 lstrsz:
     .align 4
     .word 14
+
+lascii:
+    .ascii 'Hello, World!'
+
