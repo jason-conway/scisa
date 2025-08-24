@@ -261,41 +261,54 @@ static data_t *parse_directive(arena_t *a, directive_t dir, str_t *src)
 {
     token_t t = { .data = *src };
     int32_t val = 0;
+
     if (dir == dir_text && dir != dir_data) {
         return NULL;
     }
 
+    data_t *n = alloc(a, data_t, 1);
+
     t = lex(t.data);
     switch (t.type) {
+        case tok_string:
+            switch (dir) {
+                case dir_ascii:
+                    n->data = (uintptr_t)t.token.data;
+                    n->sz = (uint16_t)t.token.len + 1; // copy will be null-terminated
+                    n->is_ascii = true;
+                    break;
+                default:
+                    return NULL;
+            }
+            break;
         case tok_integer:
             if (!str_i32(&val, t.token)) {
                 return NULL;
             }
-            break;
-        default:
-            return NULL;
-    }
-
-    data_t *n = alloc(a, data_t, 1);
-    switch (dir) {
-        case dir_byte:
-            n->val = (uint8_t)val;
-            n->sz = 1;
-            break;
-        case dir_hword:
-            n->val = (uint16_t)val;
-            n->sz = 2;
-            break;
-        case dir_word:
-            n->val = (uint32_t)val;
-            n->sz = 4;
-            break;
-        case dir_zero:
-            n->val = 0;
-            n->sz = val;
-            break;
-        case dir_align:
-            n->align = (uint8_t)val;
+            switch (dir) {
+                case dir_byte:
+                    n->data = (uint8_t)val;
+                    n->sz = sizeof(uint8_t);
+                    break;
+                case dir_hword:
+                    n->data = (uint16_t)val;
+                    n->sz = sizeof(uint16_t);
+                    break;
+                case dir_word:
+                    n->data = (uint32_t)val;
+                    n->sz = sizeof(uint32_t);
+                    break;
+                case dir_zero:
+                    n->data = 0;
+                    n->sz = (uint16_t)val;
+                    break;
+                case dir_align:
+                    n->align = (uint8_t)val;
+                    n->sz = 0;
+                    break;
+                default:
+                    return NULL;
+            }
             break;
         default:
             return NULL;
@@ -874,8 +887,22 @@ static memory_region_t assemble_data(ast_t *ast, arena_t *arena)
             align = d->align;
             continue;
         }
-        fprintf(stderr, "[assemble] [%zu] [0x%08x] [%u]\n", offset, d->val, d->sz);
-        __builtin_memcpy(&r.base[offset], &d->val, d->sz);
+        if (d->is_ascii) {
+            const size_t len = d->sz - 1;
+            const int width = len > 40 ? 40 : len;
+            fprintf(stderr, "[assemble] [%08zx] [%5zu] \"%.*s\"\n", offset, len, width, (const char *)d->data);
+        }
+        else {
+            fprintf(stderr, "[assemble] [%08zx] [%5u] [%08x]\n", offset, d->sz, (uint32_t)d->data);
+        }
+        if (d->is_ascii) {
+            const size_t len = d->sz - 1; // space for null included in size...
+            __builtin_memcpy(&r.base[offset], (void *)d->data, len);
+            r.base[offset + len] = '\0'; // but does not exist in the source string
+        } 
+        else {
+            __builtin_memcpy(&r.base[offset], &d->data, d->sz);
+        }
         offset += (d->sz < align) ? align : d->sz;
     }
     return r;

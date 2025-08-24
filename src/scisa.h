@@ -87,9 +87,10 @@ typedef struct data_t data_t;
 struct data_t {
     data_t *next;
     uint32_t lineno;
-    uint32_t val;
+    uintptr_t data;
     uint16_t sz;
     uint8_t align;
+    bool is_ascii;
 };
 
 typedef struct insn_t insn_t;

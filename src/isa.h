@@ -214,5 +214,6 @@
     hword,  \
     word,   \
     zero,   \
+    ascii,  \
     align
 #pragma endregion
