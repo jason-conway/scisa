@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include "str.h"
+#include "std.h"
 
 typedef struct output_t {
     uint8_t *data;

@@ -113,33 +113,12 @@ void print_str(output_t *o, str_t s)
         ptrdiff_t j = 0;
 
         while (i < end - c && j < avail) {
-            uint8_t e = c[i];
-            if (e == '\\' && i + 1 < end - c) {
-                switch (c[i + 1]) {
-                    case 't':
-                        e = '\t';
-                        break;
-                    case 'n':
-                        e = '\n';
-                        break;
-                    case 'r':
-                        e = '\r';
-                        break;
-                    case '\\':
-                        e = '\\';
-                        break;
-                    case 'e':
-                        e = '\e';
-                        break;
-                    case '0':
-                        flush_output(o);
-                        i += 2;
-                        c += i;
-                        goto next;
-                    default:
-                        __builtin_trap();
-                }
+            const uint8_t e = c[i];
+            if (unlikely(!e)) {
+                flush_output(o);
                 i++;
+                c += i;
+                goto next;
             }
             dst[j++] = e;
             i++;
