@@ -91,3 +91,6 @@ bool is_hex(uint8_t c);
 int32_t from_hex(uint8_t c);
 
 splitstr_t str_chop(str_t s);
+
+// Decode any escape characters in-place
+str_t str_quoted_span(uint8_t *head, uint8_t *tail);

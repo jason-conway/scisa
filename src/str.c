@@ -268,3 +268,43 @@ splitstr_t str_chop(str_t s)
     r.head = s;
     return r;
 }
+
+str_t str_quoted_span(uint8_t *head, uint8_t *tail)
+{
+    ptrdiff_t i = 0;
+    ptrdiff_t j = 0;
+    ptrdiff_t len = tail - head;
+    while (i < len) {
+        uint8_t e = head[i];
+        if (e == '\\' && i + 1 < len) {
+            switch (head[i + 1]) {
+                case 't':
+                    e = '\t';
+                    break;
+                case 'n':
+                    e = '\n';
+                    break;
+                case 'r':
+                    e = '\r';
+                    break;
+                case '\\':
+                    e = '\\';
+                    break;
+                case 'e':
+                    e = '\e';
+                    break;
+                case '0':
+                    e = '\0';
+                    break;
+                default:
+                    __builtin_trap();
+            }
+            i++;
+        }
+
+        head[j++] = e;
+        i++;
+    }
+
+    return str_from(head, j);
+}

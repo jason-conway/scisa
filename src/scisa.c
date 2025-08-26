@@ -188,7 +188,7 @@ static token_t lex(str_t s)
             return r;
         }
         r.data = str_span(&c[1], end);
-        r.token = str_span(&start[1], c);
+        r.token = str_quoted_span(&start[1], c);
         r.type = tok_string;
         return r;
     }
