@@ -1,17 +1,5 @@
 #include "io.h"
 
-static bool full_write(int32_t fd, uint8_t *s, size_t len)
-{
-    for (size_t off = 0; off < len;) {
-        ptrdiff_t r = write(fd, &s[off], len - off);
-        if (r < 1) {
-            return false;
-        }
-        off += r;
-    }
-    return true;
-}
-
 void xhexdump(const void *src, size_t len)
 {
     static const char hex[16] = "0123456789abcdef";
@@ -96,7 +84,7 @@ void xhexdump(const void *src, size_t len)
 void flush_output(output_t *o)
 {
     if (!o->err && o->len) {
-        o->err = !full_write(o->fd, o->data, o->len);
+        o->err = !os_write(o->fd, o->data, o->len);
         o->len = 0;
     }
 }

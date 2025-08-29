@@ -9,6 +9,7 @@
 
 #include "str.h"
 #include "std.h"
+#include "platform.h"
 
 typedef struct output_t {
     uint8_t *data;
