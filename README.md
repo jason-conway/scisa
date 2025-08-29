@@ -22,6 +22,7 @@
 | `sp`       | stack pointer             |
 | `fp`       | frame pointer             |
 | `cc`       | 3-way comparison flag     |
+| `cyc`      | cycle counter             |
 
 ### Stack
 
@@ -128,40 +129,60 @@ to be small without being constraining. Instructions are being added as needed.
   offset from a register, the resulting value is interpreted as the store
   *address*.
 
-### String and Output Instructions
+### String and I/O Instructions
 
 | Mnemonic | Operands         | Operation                 |
 | -------- | ---------------- | ------------------------- |
 | `msg`    | `string, reg, *` | print arguments to stdout |
+| `in`     | `(reg), reg/imm` | `read(0, (rd), rs/imm)`   |
 | `out`    | `(reg), reg/imm` | `write(1, (rd), rs/imm)`  |
+
+## Directives
+
+`scisa` implements assembler directives for specifying segments and creating
+initialized data.
+
+| segment directive | description                |
+| ----------------- | -------------------------- |
+| `.text`           | mark start of text segment |
+| `.data`           | mark start of data segment |
+
+Use `.text` and `.data` to switch back and forth between segments as needed.
+
+> Although usage of the data segment is optional, there is no default segment.
+> If a program contains instructions, it must also contain a `.text` directive
+> (and a halt instruction)
+
+| data directive | syntax       | description                     | notes                     |
+| -------------- | ------------ | ------------------------------- | ------------------------- |
+| `.ascii`       | `.ascii str` | create a null-terminated string |                           |
+| `.byte`        | `.byte imm`  | create a 1-byte value           | keeps lower byte of `imm` |
+| `.hword`       | `.hword imm` | create a 2-byte value           | keeps lower half of `imm` |
+| `.word`        | `.word imm`  | create a 4-byte value           |                           |
+| `.zero`        | `.zero imm`  | emit `imm` zeros                |                           |
+| `.align`       | `.align imm` | align data to `imm` bytes       |                           |
 
 ## Syntax
 
-All mnemonics can be uppercase or lowercase:
+### Program Structure
 
 ```asm
-add r1, r2
+.text           ; Start of code segment
+main:           ; Entrypoint label
+
+    (your instructions here)
+
+    halt        ; End of entrypoint
 ```
 
-and
+### Comments
+
+Comments start with a semicolon (`;`) and continue until the end of the line:
 
 ```asm
-ADD r1, r2
+; This is a comment
+mov r0, 42  ; This is an inline comment
 ```
-
-are equivalent. Similarly, all registers can be uppercase or lowercase:
-
-```asm
-mul r1, r2
-```
-
-and
-
-```asm
-mul R1, R2
-```
-
-are equivalent.
 
 ---
 
@@ -189,43 +210,9 @@ mov r8, -4096
 mov r9, +4096   ; ditto
 ```
 
----
+### ALU & Logic Instructions
 
-### `op reg, reg/imm`
-
-```asm
-add r1, r2
-sub r3, 50
-```
-
-### `op reg, reg/imm/imm(reg)`
-
-```asm
-mov r5, sp
-ldr r4, (r5) ; *r5 = r4
-```
-
-```asm
-mov r5, 0x10000000
-ldr r4, (r5) ; r4 = *0x10000000
-```
-
-```asm
-mov r5, 0x10000000
-add r5, 16
-ldr r4, (r5)
-```
-
-is identical to
-
-```asm
-mov r5, 0x10000000
-ldr r4, 16(r5)
-```
-
-### `op reg`
-
-#### ALU & Logic Instructions
+Single register operand:
 
 ```asm
 inc r4 ; r4 = r4 + 1
@@ -233,7 +220,16 @@ dec r5 ; r5 = r5 - 1
 neg r6 ; r6 = 0 - r6
 ```
 
-#### Stack Instructions
+Register-register / Register-immediate operands:
+
+```asm
+add r1, r2      ; Add register r2 to r1
+sub r3, 50      ; Subtract immediate value 50 from r3
+mul r4, r5      ; Multiply r4 by r5
+div r6, 2       ; Divide r6 by 2
+```
+
+### Stack Instructions
 
 ```asm
 push r4 ; sp -= 4
@@ -243,71 +239,9 @@ pop r5  ; ldr r5, (sp)
         ; sp += 4
 ```
 
-### `cmp`
+### Memory Instructions
 
-`cmp` uses the following symantics to set the `cc` register:
-
-```c
-uint32_t setcc(uint32_t u0, uint32_t u1)
-{
-    int32_t i0 = u0;
-    int32_t i1 = u1;
-    uint32_t r = CC_NULL;
-    r |= (u0 != u1) ? CC_NE : CC_NULL;
-    r |= (u0 == u1) ? CC_EQ : CC_NULL;
-    r |= (i0 >= i1) ? CC_GE : CC_NULL;
-    r |= (i0  > i1) ? CC_GT : CC_NULL;
-    r |= (i0 <= i1) ? CC_LE : CC_NULL;
-    r |= (i0  < i1) ? CC_LT : CC_NULL;
-    r |= (u0 >= u1) ? CC_HS : CC_NULL;
-    r |= (u0  > u1) ? CC_HI : CC_NULL;
-    r |= (u0 <= u1) ? CC_LS : CC_NULL;
-    r |= (u0  < u1) ? CC_LO : CC_NULL;
-    return r;
-}
-```
-
-### Directives
-
-`scisa` implements assembler directives for specifying segments and creating
-initialized data.
-
-| segment directive | description                |
-| ----------------- | -------------------------- |
-| `.text`           | mark start of text segment |
-| `.data`           | mark start of data segment |
-
-Use `.text` and `.data` to switch back and forth between segments as needed.
-
-> Although usage of the data segment is optional, there is no default segment.
-> If a program contains instructions, it must also contain a `.text` directive
-> (and a halt instruction)
-
-| data directive | syntax       | description                     | notes                     |
-| -------------- | ------------ | ------------------------------- | ------------------------- |
-| `.ascii`       | `.ascii str` | create a null-terminated string |                           |
-| `.byte`        | `.byte imm`  | create a 1-byte value           | keeps lower byte of `imm` |
-| `.hword`       | `.hword imm` | create a 2-byte value           | keeps lower half of `imm` |
-| `.word`        | `.word imm`  | create a 4-byte value           |                           |
-| `.zero`        | `.zero imm`  | emit `imm` zeros                |                           |
-| `.align`       | `.align imm` | align data to `imm` bytes       |                           |
-
-### Assembly Syntax
-
-#### `reg, reg/imm`
-
-Most instructions use the `reg, reg/imm` syntax.
-
-```asm
-add r1, r2
-sub r3, 50
-```
-
----
-
-#### `reg, (reg)/imm(reg)`
-
-Load and store instructions support a `reg, (reg)/imm(reg)` syntax.
+Load and store instructions use a `reg, (reg)/imm(reg)` syntax.
 
 ```asm
 ldr r18, 48(sp)
@@ -327,9 +261,7 @@ str r18, (sp)
 
 ---
 
-#### `reg, (label)/imm(label)`
-
-The `lea` instruction supports `reg, (label)/imm(label)` syntax.
+The `lea` instruction uses a `reg, (label)/imm(label)` syntax.
 
 ```asm
 .data
@@ -378,9 +310,31 @@ hash:
 
 ---
 
-#### `msg` Syntax
+### I/O Instructions
 
-`msg` accepts a variable number of comma-seperated arguments. Arguments can be
+```asm
+.text
+main:
+    ; Allocate buffer on the stack
+    mov r0, sp       ; Save current stack pointer
+    sub sp, 16       ; Allocate 16 bytes
+
+    ; Read input from stdin (up to 16 bytes)
+    mov r1, sp       ; Buffer address
+    mov r2, 16       ; Buffer size
+    in (r1), r2      ; Read from stdin
+
+    ; Echo the input back to stdout
+    out (r1), r2     ; Write to stdout
+
+    ; Restore stack
+    mov sp, r0
+    halt
+```
+
+---
+
+`msg` accepts a variable number of comma-separated arguments. Arguments can be
 any combination of single-quoted strings and registers.
 
 ```asm
@@ -394,9 +348,52 @@ explicitly using a NUL byte.
 msg     '\r', r4, '\t', r5, '\0'
 ```
 
-## TODO
+### Control Flow Instructions
 
-Let PUSH and POP accept a variable number of register operands
+### Conditional Branch Instructions
+
+```asm
+.text
+main:
+    mov r1, 10      ; Initialize counter
+    mov r2, 0       ; Initialize sum
+
+loop:
+    add r2, r1      ; Add counter to sum
+    dec r1          ; Decrement counter
+
+    cmp r1, 0       ; Compare counter with 0
+    bgt loop        ; Branch to loop if counter > 0
+
+    msg 'Sum: ', r2, '\n'  ; Print result
+    halt
+```
+
+### CMP Instruction
+
+`cmp` uses the following symantics to set the `cc` register:
+
+```c
+uint32_t setcc(uint32_t u0, uint32_t u1)
+{
+    int32_t i0 = u0;
+    int32_t i1 = u1;
+    uint32_t r = CC_NULL;
+    r |= (u0 != u1) ? CC_NE : CC_NULL;
+    r |= (u0 == u1) ? CC_EQ : CC_NULL;
+    r |= (i0 >= i1) ? CC_GE : CC_NULL;
+    r |= (i0  > i1) ? CC_GT : CC_NULL;
+    r |= (i0 <= i1) ? CC_LE : CC_NULL;
+    r |= (i0  < i1) ? CC_LT : CC_NULL;
+    r |= (u0 >= u1) ? CC_HS : CC_NULL;
+    r |= (u0  > u1) ? CC_HI : CC_NULL;
+    r |= (u0 <= u1) ? CC_LS : CC_NULL;
+    r |= (u0  < u1) ? CC_LO : CC_NULL;
+    return r;
+}
+```
+
+## TODO
 
 ```u
 -fverbose-asm
