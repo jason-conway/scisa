@@ -58,6 +58,8 @@
     movlorr,    \
     outri,      \
     outrr,      \
+    inri,       \
+    inrr,       \
     ldsbrr,     \
     ldsbrir,    \
     ldshrr,     \
@@ -138,6 +140,7 @@
     movls,  \
     movlo,  \
     out,    \
+    in,     \
     ldsb,   \
     ldsh,   \
     ldub,   \

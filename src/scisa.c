@@ -1,7 +1,5 @@
 #include "scisa.h"
 
-static str_t os_loadstdin(arena_t *a);
-
 static bool is_register(str_t s)
 {
     const int64_t len = s.len;
@@ -89,21 +87,18 @@ static bool str_reg(reg_t *r, str_t s)
     return false;
 }
 
-void *__alloc(arena_t *a, size_t objsize, size_t align, size_t count)
+static sym_addr_t symbol_addr(seg_t segment, seg_addrs_t addr)
 {
-    ptrdiff_t avail = a->end - a->start;
-    ptrdiff_t padding = -(uintptr_t)a->start & (align - 1);
-    if (count > (avail - padding) / objsize) {
-        abort();
+    if (unlikely(segment > seg_max)) {
+        __builtin_trap();
     }
-    size_t total = objsize * count;
 
-    uint8_t *r = &a->start[padding];
-    for (size_t i = 0; i < total; i++) {
-        a->start[padding + i] = 0;
-    }
-    a->start += padding + total;
-    return r;
+    const sym_addr_t addrs[] = {
+        (uint64_t)-1,
+        (uint64_t)(addr.insn + 0x00000000) << 0x00,
+        (uint64_t)(addr.data + 0x10000000) << 0x20
+    };
+    return addrs[segment];
 }
 
 static sym_addr_t *sym_upsert(labels_t **t, str_t label, arena_t *a)
@@ -427,6 +422,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
             }
             break;
         case m_out:
+        case m_in:
             lex_assert(t, tok_lparen);
 
             n->op = op_outri + 2 * (m - m_out);
@@ -774,20 +770,6 @@ static vaddr label_addr(sym_addr_t addr)
     return (vaddr)addr;
 }
 
-static sym_addr_t symbol_addr(seg_t segment, seg_addrs_t addr)
-{
-    if (unlikely(segment > seg_max)) {
-        __builtin_trap();
-    }
-
-    const sym_addr_t addrs[] = {
-        (uint64_t)-1,
-        (uint64_t)(addr.insn + 0x00000000) << 0x00,
-        (uint64_t)(addr.data + 0x10000000) << 0x20
-    };
-    return addrs[segment];
-}
-
 static ast_t parse(str_t src, arena_t *heap, arena_t stack)
 {
     ast_t r = { .lineno = 1, };
@@ -995,6 +977,7 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_movlsri:
             case op_movlori:
             case op_outri:
+            case op_inri:
             case op_cmpri:
                 code[i].reg[0] = n->reg[0];
                 code[i].operand.imm[1] = n->imm[1];
@@ -1024,6 +1007,7 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
             case op_movlsrr:
             case op_movlorr:
             case op_outrr:
+            case op_inrr:
             case op_ldsbrr:
             case op_ldshrr:
             case op_ldubrr:
@@ -1168,24 +1152,4 @@ int main(void)
 {
     arena_t heap = bss_arena();
     return !run(heap);
-}
-
-// platform specific
-
-static str_t os_loadstdin(arena_t *a)
-{
-    str_t s = { 0 };
-    bool err = false;
-
-    err |= fseek(stdin, 0, SEEK_END);
-    size_t len = ftell(stdin);
-    err |= len < 1;
-    err |= fseek(stdin, 0, SEEK_SET);
-    if (err) {
-        return s;
-    }
-
-    s.data = alloc(a, uint8_t, len);
-    s.len = fread(s.data, 1, len, stdin);
-    return s;
 }

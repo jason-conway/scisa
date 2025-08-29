@@ -5,16 +5,19 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "isa.h"
 #include "std.h"
 #include "str.h"
 #include "io.h"
+#include "arena.h"
 
-#define countof(a)     (sizeof(a) / sizeof(*(a)))
-#define lengthof(s)    (countof(s) - 1)
-#define alloc(a, t, n) __alloc(a, sizeof(t), _Alignof(t), n)
+#ifndef countof
+    #define countof(a)     (sizeof(a) / sizeof(*(a)))
+#endif
+#ifndef lengthof
+    #define lengthof(s)    (countof(s) - 1)
+#endif
 
 #define GEN_MNEMONIC_ID(m)  m_##m
 #define GEN_OPCODE_ID(o)    op_##o
@@ -156,11 +159,6 @@ typedef struct result_t {
     bool ok;
 } result_t;
 
-typedef struct arena_t {
-    uint8_t *start;
-    uint8_t *end;
-} arena_t;
-
 typedef enum cc_t {
     CC_NULL,
     CC_NE = 1u << 0,
@@ -175,5 +173,6 @@ typedef enum cc_t {
     CC_LO = 1u << 9, // unsigned LT
 } cc_t;
 
-void *__alloc(arena_t *a, size_t objsize, size_t align, size_t count);
+
+
 result_t execute(scoff_t obj, arena_t arena);
