@@ -257,7 +257,7 @@ static data_t *parse_directive(arena_t *a, directive_t dir, str_t *src)
     token_t t = { .data = *src };
     int32_t val = 0;
 
-    if (dir == dir_text && dir != dir_data) {
+    if (dir == dir_text) {
         return NULL;
     }
 
@@ -1079,7 +1079,7 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
                 break;
             case op_br:
             case op_blr:
-                code[i].operand.addr = n->reg[0] + 1;
+                code[i].operand.addr = n->reg[0] - 1;
                 break;
             case op_msg:
                 code[i].operand.head = n->head;

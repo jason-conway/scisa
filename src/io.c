@@ -2,7 +2,7 @@
 
 void xhexdump(const void *src, size_t len)
 {
-    static const char hex[16] = "0123456789abcdef";
+    static const char hex[] = "0123456789abcdef";
 
     //              offset                        bytes                             ascii
     //            00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
