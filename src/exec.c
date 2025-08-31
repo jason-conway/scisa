@@ -574,8 +574,9 @@ result_t execute(scoff_t obj, arena_t arena)
                 regs[pc] = w->operand.addr - 1;
                 break;
 #pragma endregion
-#pragma region BL
+#pragma region BL & BLR
             case op_bl:
+            case op_blr:
                 regs[lr] = regs[pc];
                 regs[pc] = w->operand.addr - 1;
                 break;

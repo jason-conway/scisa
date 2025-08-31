@@ -690,6 +690,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
             n->op = op_b + (m - m_b);
             break;
         case m_br:
+        case m_blr:
             // Single (reg) operand
             lex_assert(t, tok_lparen);
 
@@ -1077,7 +1078,8 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
                 code[i].operand.addr = n->addr;
                 break;
             case op_br:
-                code[i].operand.addr = n->reg[0];
+            case op_blr:
+                code[i].operand.addr = n->reg[0] + 1;
                 break;
             case op_msg:
                 code[i].operand.head = n->head;

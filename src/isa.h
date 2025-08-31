@@ -101,6 +101,7 @@
     bls,        \
     blo,        \
     br,         \
+    blr,        \
     ret,        \
     msg,        \
     halt,
@@ -164,6 +165,7 @@
     bls,    \
     blo,    \
     br,     \
+    blr,    \
     msg,
 #pragma endregion
 
