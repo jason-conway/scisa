@@ -1079,7 +1079,7 @@ static scir_t *assemble_code(ast_t *ast, arena_t *arena)
                 break;
             case op_br:
             case op_blr:
-                code[i].operand.addr = n->reg[0] - 1;
+                code[i].reg[0] = n->reg[0];
                 break;
             case op_msg:
                 code[i].operand.head = n->head;

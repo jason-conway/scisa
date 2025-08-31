@@ -568,17 +568,26 @@ result_t execute(scoff_t obj, arena_t arena)
                 }
                 break;
 #pragma endregion
-#pragma region B & BR
+#pragma region B
             case op_b:
-            case op_br:
                 regs[pc] = w->operand.addr - 1;
                 break;
 #pragma endregion
-#pragma region BL & BLR
+#pragma region BR
+            case op_br:
+                regs[pc] = regs[w->reg[0]];
+                break;
+#pragma endregion
+#pragma region BL
             case op_bl:
-            case op_blr:
                 regs[lr] = regs[pc];
                 regs[pc] = w->operand.addr - 1;
+                break;
+#pragma endregion
+#pragma region BLR
+            case op_blr:
+                regs[lr] = regs[pc];
+                regs[pc] = regs[w->reg[0]];
                 break;
 #pragma endregion
 #pragma region BNE
