@@ -1,12 +1,12 @@
 .text
 
 main:
-    lea r24, (string)
-    mov r4, r24
-    bl strlen
-    mov r25, r0
-    out (r24), r25
-    halt
+	lea	r24, (string)
+	mov	r4, r24
+	bl	strlen
+	mov	r25, r0
+	out	(r24), r25
+	halt
 
 strlen:
 	mov	r0, 0

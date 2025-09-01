@@ -442,22 +442,22 @@ result_t execute(scoff_t obj, arena_t arena)
 #pragma endregion
 #pragma region OUT
             case op_outri:
-                xhexdump(map_addr(&obj, regs[w->reg[0]]), w->operand.imm[1]);
+                // xhexdump(map_addr(&obj, regs[w->reg[0]]), w->operand.imm[1]);
                 print_str(&r.out, str_from(map_addr(&obj, regs[w->reg[0]]), w->operand.imm[1]));
                 break;
             case op_outrr:
-                xhexdump(map_addr(&obj, regs[w->reg[0]]), regs[w->reg[1]]);
+                // xhexdump(map_addr(&obj, regs[w->reg[0]]), regs[w->reg[1]]);
                 print_str(&r.out, str_from(map_addr(&obj, regs[w->reg[0]]), regs[w->reg[1]]));
                 break;
 #pragma endregion
 #pragma region IN
             case op_inri:
                 os_read(STDIN_FILENO, map_addr(&obj, regs[w->reg[0]]), w->operand.imm[1]);
-                xhexdump(map_addr(&obj, regs[w->reg[0]]), w->operand.imm[1]);
+                // xhexdump(map_addr(&obj, regs[w->reg[0]]), w->operand.imm[1]);
                 break;
             case op_inrr:
-                os_read(STDIN_FILENO, map_addr(&obj, regs[w->reg[0]]), regs[w->reg[1]]);
-                xhexdump(map_addr(&obj, regs[w->reg[0]]), regs[w->reg[1]]);
+                regs[w->reg[1]] = os_read(STDIN_FILENO, map_addr(&obj, regs[w->reg[0]]), regs[w->reg[1]]);
+                // xhexdump(map_addr(&obj, regs[w->reg[0]]), regs[w->reg[1]]);
                 break;
 #pragma endregion
 #pragma region LDSB

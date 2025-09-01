@@ -8,6 +8,8 @@ main:
     msg 'fn2: ', r0, '\n'
     lea r0, (fn3)
     msg 'fn3: ', r0, '\n'
+    lea r0, (main)
+    msg 'main: ', r0, '\n'
     halt
 
 fn0:

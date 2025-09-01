@@ -1099,7 +1099,7 @@ static scoff_t assemble(ast_t ast, arena_t *arena)
     return obj;
 }
 
-static bool run(arena_t heap)
+static bool run(arena_t heap, const char *file)
 {
     arena_t a = { 0 };
     ptrdiff_t cap = (heap.end - heap.start) / 2;
@@ -1112,7 +1112,7 @@ static bool run(arena_t heap)
     err.cap = 1 << 8;
     err.data = alloc(&heap, uint8_t, err.cap);
 
-    str_t src = os_loadstdin(&heap);
+    str_t src = os_loadfile(&heap, file);
 
     ast_t ast = parse(src, &heap, a);
     if (!ast.ok) {
@@ -1150,8 +1150,13 @@ static arena_t bss_arena(void)
     return r;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+    if (argc != 2) {
+        fprintf(stderr, "usage: %s <source-file>\n", argv[0]);
+        return -1;
+    }
+
     arena_t heap = bss_arena();
-    return !run(heap);
+    return !run(heap, argv[1]);
 }
