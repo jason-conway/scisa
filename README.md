@@ -21,7 +21,7 @@
 | `lr`       | link register             |
 | `sp`       | stack pointer             |
 | `fp`       | frame pointer             |
-| `cc`       | 3-way comparison flag     |
+| `cc`       | comparison flags register |
 | `cyc`      | cycle counter             |
 
 ### Stack
@@ -137,6 +137,22 @@ to be small without being constraining. Instructions are being added as needed.
 | `msg`    | `string, reg, *` | print arguments to stdout |
 | `in`     | `(reg), reg/imm` | `read(0, (rd), rs/imm)`   |
 | `out`    | `(reg), reg/imm` | `write(1, (rd), rs/imm)`  |
+
+#### Notes
+
+- The second operand of `out`, (`rs/imm`), indicates the **total** number of bytes
+  to be written.
+- `out` will block until all `rs/imm` bytes have been written, potentially
+  across multiple partial writes.
+- The second operand of `in`, (`rs/imm`), indicates the **maximum** number of
+  bytes to be read.
+- `in` matches the behavior of `read(2)` with `O_NONBLOCK` cleared, i.e.,
+  blocking until data becomes available, then reading up to `rs/imm` bytes or
+  until `EOF` (whichever comes first).
+- When `in`'s second operand is a register (`rs`), the instruction will update
+  the register value with the actual number of bytes read.
+- When `in`'s second operand is an immediate (`imm`), there is no builtin method
+  for determining the actual number of bytes read (provided `imm > 1`).
 
 ## Directives
 
@@ -395,33 +411,3 @@ uint32_t setcc(uint32_t u0, uint32_t u1)
 ```
 
 ## TODO
-
-```u
--fverbose-asm
--Os
--mips1
--mgp32
--msym32
--mlong32
--fno-delayed-branch
--mcompact-branches=never
--mno-micromips
--mno-mt
--mno-eva
--mno-mcu
--mno-virt
--mno-xpa
--mno-crc
--mno-mad
--mno-dsp
--mno-madd4
--mno-imadd
--mno-llsc
--mno-lxc1-sxc1
--mno-memcpy
--msoft-float
--mno-split-addresses
--mno-load-store-pairs
--mno-check-zero-division
--mframe-header-opt
-```
