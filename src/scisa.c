@@ -90,7 +90,7 @@ static bool str_reg(reg_t *r, str_t s)
 static sym_addr_t symbol_addr(seg_t segment, seg_addrs_t addr)
 {
     if (unlikely(segment > seg_max)) {
-        __builtin_trap();
+        trap("invalid segment");
     }
 
     const sym_addr_t addrs[] = {
@@ -748,7 +748,7 @@ static insn_t *parse_instruction(arena_t *a, mnemonic_t m, str_t *src)
                 }
                 last = t.type;
             }
-            __builtin_trap();
+            __builtin_unreachable();
 #pragma endregion
     }
 
@@ -1142,7 +1142,7 @@ static bool run(arena_t heap, const char *file)
 
 static arena_t bss_arena(void)
 {
-    static uint8_t mem[1u << 25];
+    static uint8_t mem[1u << 26];
     arena_t r = { 0 };
     r.start = mem;
     asm("" : "+r"(r.start));

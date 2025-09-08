@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "std.h"
 
 typedef struct arena_t {
     uint8_t *start;

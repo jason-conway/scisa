@@ -297,7 +297,7 @@ str_t str_quoted_span(uint8_t *head, uint8_t *tail)
                     e = '\0';
                     break;
                 default:
-                    __builtin_trap();
+                    trap("unhandled escape character");
             }
             i++;
         }

@@ -11,7 +11,7 @@ static size_t ldst_sz(opcode_t op)
 {
     switch (op) {
         default:
-            __builtin_trap();
+            trap("non-ld/st opcode");
         case op_ldsbrr:
         case op_ldsbrir:
         case op_ldubrr:
@@ -48,7 +48,7 @@ static void *map_addr(scoff_t *obj, vaddr addr)
     if (likely((vaddr)(addr - DATA_LOW) < obj->data.size)) {
         return &obj->data.base[addr - DATA_LOW];
     }
-    __builtin_trap();
+    trap("segfault");
 }
 
 static uint32_t setcc(uint32_t u0, uint32_t u1)

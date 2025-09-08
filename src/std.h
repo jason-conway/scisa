@@ -24,6 +24,27 @@
     #endif
 #endif
 
+#ifndef trap
+    #if __has_builtin(__builtin_verbose_trap)
+        #define trap(s) __builtin_verbose_trap(s, s)
+    #else
+        #define trap(s) __builtin_trap()
+    #endif
+#endif
+
+#ifndef assume
+    #if __has_builtin(__builtin_assume)
+        #define assume(x) __builtin_assume(!!(x))
+    #else
+        #define assume(x) \
+            do { \
+                if (unlikely(!(x))) { \
+                    __builtin_unreachable(); \
+                } \
+            } while (0)
+    #endif
+#endif
+
 // Expands to nothing
 #define NOTHING()
 
