@@ -296,6 +296,7 @@ static data_t *parse_directive(arena_t *a, directive_t dir, str_t *src)
                 case dir_zero:
                     n->data = 0;
                     n->sz = (uint16_t)val;
+                    n->is_zero = true;
                     break;
                 case dir_align:
                     n->align = (uint8_t)val;
@@ -903,22 +904,30 @@ static memory_region_t assemble_data(ast_t *ast, arena_t *arena)
     size_t offset = 0;
 
     for (data_t *d = ast->head.data; d; d = d->next) {
+        if (d->is_ascii) {
+            const size_t len = d->sz - 1;
+            const int width = len > 40 ? 40 : len;
+            fprintf(stderr, "[assemble] [%08zx] [ascii] [%5zu] \"%.*s\"\n", offset, len, width, (const char *)d->data);
+        }
+        else if (d->is_zero) {
+            fprintf(stderr, "[assemble] [%08zx] [zeros] [%5u]\n", offset, d->sz);
+        }
+        else if (!d->align) {
+            fprintf(stderr, "[assemble] [%08zx] [words] [%5u] [%08x]\n", offset, d->sz, (uint32_t)d->data);
+        }
+
         if (d->align) {
             align = d->align;
             continue;
         }
-        if (d->is_ascii) {
-            const size_t len = d->sz - 1;
-            const int width = len > 40 ? 40 : len;
-            fprintf(stderr, "[assemble] [%08zx] [%5zu] \"%.*s\"\n", offset, len, width, (const char *)d->data);
-        }
-        else {
-            fprintf(stderr, "[assemble] [%08zx] [%5u] [%08x]\n", offset, d->sz, (uint32_t)d->data);
-        }
-        if (d->is_ascii) {
+        else if (d->is_ascii) {
             const size_t len = d->sz - 1; // space for null included in size...
             __builtin_memcpy(&r.base[offset], (void *)d->data, len);
             r.base[offset + len] = '\0'; // but does not exist in the source string
+        }
+        else if (d->is_zero) {
+            assume(!d->data);
+            __builtin_memset(&r.base[offset], d->data, d->sz);
         }
         else {
             __builtin_memcpy(&r.base[offset], &d->data, d->sz);

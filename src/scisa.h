@@ -94,6 +94,7 @@ struct data_t {
     uint16_t sz;
     uint8_t align;
     bool is_ascii;
+    bool is_zero;
 };
 
 typedef struct insn_t insn_t;
